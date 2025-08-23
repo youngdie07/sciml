@@ -146,7 +146,8 @@ This demo compares how different activation functions approximate a target funct
   <div class="controls">
     <label>Target Function:
       <select id="target-function">
-        <option value="sine">sin(2πx)</option>
+        <option value="sine">sin(πx)</option>
+        <option value="sine2">sin(2πx)</option>
         <option value="step">Smooth Step (tanh)</option>
         <option value="sawtooth">Triangle Wave</option>
       </select>
@@ -169,7 +170,7 @@ This demo compares how different activation functions approximate a target funct
 - **Sigmoid**: Creates smooth step-like transitions - also works for ALL continuous functions  
 - **Parabolic (x²)**: **NOT universal** - may accidentally work for specific functions (like sine with 2 units) but fails for step functions, sawtooth, etc.
 
-**Why parabolic fails UAT:** The key requirement for UAT is the ability to create arbitrary localized "bumps" that can be combined. ReLU and sigmoid can create these bumps through differences (ReLU(x-a) - ReLU(x-b)), but parabolic functions cannot create the sharp transitions needed for general approximation. The fact that 2 parabolas can approximate sin(2πx) is just a coincidence - it doesn't generalize!
+**Why parabolic fails UAT:** The key requirement for UAT is the ability to create arbitrary localized "bumps" that can be combined. ReLU and sigmoid can create these bumps through differences (ReLU(x-a) - ReLU(x-b)), but parabolic functions cannot create the sharp transitions needed for general approximation. The fact that 2 parabolas can approximate sin(πx) or sin(2πx) is just a coincidence (one parabola for each half-cycle) - it doesn't generalize to other functions!
 
 ## Hahn-Banach Proof (Contradiction)
 
@@ -642,7 +643,7 @@ document.addEventListener('DOMContentLoaded', function() {
     reluCtx.stroke();
     
     // Target function (sine wave)
-    const targetFunc = x => Math.sin(2 * Math.PI * x);
+    const targetFunc = x => Math.sin(Math.PI * x);
     
     // Draw target function
     reluCtx.strokeStyle = '#2196F3';
@@ -696,7 +697,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Legend
     reluCtx.font = '14px monospace';
     reluCtx.fillStyle = '#2196F3';
-    reluCtx.fillText('Target: sin(2πx)', canvasWidth - 180, 30);
+    reluCtx.fillText('Target: sin(πx)', canvasWidth - 180, 30);
     reluCtx.fillStyle = '#FF5722';
     reluCtx.fillText(`ReLU Steps (${numBumps} bumps)`, canvasWidth - 180, 50);
     reluCtx.fillStyle = '#666';
@@ -763,6 +764,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Target function based on selection
     let targetFunc;
     if (targetType === 'sine') {
+      targetFunc = x => Math.sin(Math.PI * x);
+    } else if (targetType === 'sine2') {
       targetFunc = x => Math.sin(2 * Math.PI * x);
     } else if (targetType === 'step') {
       // Smooth approximation of step function using tanh (continuous!)
