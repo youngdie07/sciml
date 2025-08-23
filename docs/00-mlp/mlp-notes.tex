@@ -1,0 +1,498 @@
+%**************************************************************************************
+% Neural Networks and Universal Approximation: Course Notes
+% License: CC BY-NC-SA 4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)
+%**************************************************************************************
+
+\documentclass[11pt]{article}
+
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{enumerate}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator{\ReLU}{ReLU}
+\DeclareMathOperator{\sign}{sign}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{example}{Example}[section]
+\newtheorem{remark}{Remark}[section]
+
+\title{Neural Networks and Universal Approximation}
+\author{Course Notes}
+\date{}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+%----------------------------------------------------------------------------------------
+\section{The Central Question}
+
+Can we build a machine that learns any pattern? More precisely: given any continuous function $f: [a,b] \to \mathbb{R}$, can we construct a parametric family of functions that includes arbitrarily good approximations to $f$?
+
+The answer is yes. Neural networks with even a single hidden layer can approximate any continuous function to arbitrary accuracy. This result, known as the Universal Approximation Theorem (UAT), provides the theoretical foundation for using neural networks in scientific computing.
+
+But why the emphasis on \textit{continuous} functions? This restriction isn't arbitrary—it's fundamental to what neural networks can and cannot do.
+
+%----------------------------------------------------------------------------------------
+\section{From Linear to Nonlinear}
+
+\subsection{The Perceptron}
+
+A perceptron computes a weighted sum followed by an activation:
+\begin{equation}
+\hat{y} = \sigma(\mathbf{w}^T\mathbf{x} + b)
+\end{equation}
+
+Without the activation function $\sigma$, we have only linear transformations. Multiple linear layers collapse to a single linear transformation:
+\begin{equation}
+W_2(W_1\mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2 = (W_2W_1)\mathbf{x} + (W_2\mathbf{b}_1 + \mathbf{b}_2)
+\end{equation}
+
+This fundamental limitation means linear networks cannot approximate curved functions like $\sin(\pi x)$.
+
+\subsection{The XOR Problem}
+
+The XOR function demonstrates why nonlinearity is essential:
+\begin{center}
+\begin{tabular}{cc|c}
+$x_1$ & $x_2$ & XOR \\
+\hline
+0 & 0 & 0 \\
+0 & 1 & 1 \\
+1 & 0 & 1 \\
+1 & 1 & 0 \\
+\end{tabular}
+\end{center}
+
+No single line can separate the two classes. The solution requires composition of nonlinear functions—essentially learning (OR) AND (NOT AND).
+
+%----------------------------------------------------------------------------------------
+\section{Function Spaces: The Mathematical Setting}
+
+\subsection{Why We Need Function Spaces}
+
+To prove neural networks can approximate "any" function, we need to be precise about:
+\begin{enumerate}
+\item What functions we're considering
+\item How we measure approximation quality
+\item What "arbitrarily close" means mathematically
+\end{enumerate}
+
+This leads us to function spaces—the natural setting for approximation theory.
+
+\subsection{Banach Spaces}
+
+\begin{definition}[Banach Space]
+A Banach space is a complete normed vector space. For functions on $[a,b]$:
+\begin{enumerate}
+\item Vector space operations: $(f+g)(x) = f(x) + g(x)$, $(\alpha f)(x) = \alpha f(x)$
+\item Norm: A measure of "size" satisfying:
+\begin{itemize}
+\item $\|f\| \geq 0$ with equality iff $f = 0$
+\item $\|\alpha f\| = |\alpha| \|f\|$
+\item $\|f + g\| \leq \|f\| + \|g\|$ (triangle inequality)
+\end{itemize}
+\item Completeness: Every Cauchy sequence converges
+\end{enumerate}
+\end{definition}
+
+Common norms for continuous functions:
+\begin{align}
+\|f\|_\infty &= \sup_{x \in [a,b]} |f(x)| \quad \text{(supremum norm)} \\
+\|f\|_2 &= \left(\int_a^b |f(x)|^2 dx\right)^{1/2} \quad \text{(L² norm)} \\
+\|f\|_1 &= \int_a^b |f(x)| dx \quad \text{(L¹ norm)}
+\end{align}
+
+The space $C([a,b])$ of continuous functions is complete under $\|\cdot\|_\infty$ but not under $\|\cdot\|_2$ or $\|\cdot\|_1$.
+
+\subsection{Hilbert Spaces and Fourier Series}
+
+\begin{definition}[Hilbert Space]
+A Hilbert space is a Banach space with an inner product:
+\begin{equation}
+\langle f, g \rangle = \int_a^b f(x)g(x) dx
+\end{equation}
+satisfying $\|f\|^2 = \langle f, f \rangle$.
+\end{definition}
+
+The inner product gives us geometry: angles, orthogonality, and projections. This enables basis expansions like Fourier series.
+
+\subsubsection{The Fourier Basis Approach}
+
+Consider approximating a step function using Fourier series:
+\begin{equation}
+f(x) = \frac{a_0}{2} + \sum_{n=1}^\infty \left(a_n \cos(n\pi x) + b_n \sin(n\pi x)\right)
+\end{equation}
+
+The Fourier basis functions $\{\cos(n\pi x), \sin(n\pi x)\}$ are orthogonal in $L^2[0,1]$:
+\begin{equation}
+\langle \sin(n\pi x), \sin(m\pi x) \rangle = \begin{cases} 0 & n \neq m \\ 1/2 & n = m \end{cases}
+\end{equation}
+
+This orthogonality makes coefficient computation straightforward:
+\begin{equation}
+a_n = 2\langle f, \cos(n\pi x) \rangle, \quad b_n = 2\langle f, \sin(n\pi x) \rangle
+\end{equation}
+
+However, Fourier series has limitations:
+\begin{itemize}
+\item \textbf{Gibbs phenomenon}: Overshoots at discontinuities never disappear
+\item \textbf{Fixed basis}: Cannot adapt to specific function features
+\item \textbf{Global support}: Each basis function affects the entire domain
+\end{itemize}
+
+Neural networks overcome these limitations by learning adaptive, localized basis functions.
+
+\subsection{Density: The Key Concept}
+
+\begin{definition}[Dense Subset]
+A subset $S \subseteq X$ is dense if for every $x \in X$ and $\epsilon > 0$, there exists $s \in S$ with $\|x - s\| < \epsilon$.
+\end{definition}
+
+Density means we can approximate any element arbitrarily well using elements from our subset. The UAT states that neural networks form a dense subset in $C([a,b])$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\textwidth]{figs/uat-approximation-progression.png}
+\caption{Neural network approximation improves with width: 2, 10, and 50 neurons approximating $\sin(\pi x)$. As the number of neurons increases, the approximation error decreases, demonstrating density in $C([0,1])$.}
+\label{fig:uat-progression}
+\end{figure}
+
+%----------------------------------------------------------------------------------------
+\section{The Universal Approximation Theorem}
+
+\subsection{Statement}
+
+\begin{theorem}[Universal Approximation (Cybenko, 1989)]
+Let $\sigma: \mathbb{R} \to \mathbb{R}$ be a continuous, bounded, non-constant, monotonically increasing function. The set of functions
+\begin{equation}
+\mathcal{N} = \left\{ \sum_{i=1}^N w_i \sigma(v_i x + b_i) : N \in \mathbb{N}, w_i, v_i, b_i \in \mathbb{R} \right\}
+\end{equation}
+is dense in $C([0,1])$ under the supremum norm.
+\end{theorem}
+
+Note the theorem specifically states $C([0,1])$—continuous functions. This restriction is crucial.
+
+%----------------------------------------------------------------------------------------
+\section{Constructive Proof: Building Functions with ReLU}
+
+\subsection{The ReLU Building Block}
+
+The Rectified Linear Unit:
+\begin{equation}
+\ReLU(x) = \max(0, x)
+\end{equation}
+
+Two ReLU units create a "bump" function:
+\begin{equation}
+\text{bump}_{[a,b]}(x) = \ReLU(x - a) - \ReLU(x - b)
+\end{equation}
+
+This function:
+\begin{itemize}
+\item Equals 0 for $x < a$
+\item Increases linearly from $a$ to $b$
+\item Equals $b - a$ for $x > b$
+\end{itemize}
+
+\subsection{The Role of Bias}
+
+For a neuron with activation $h = \ReLU(wx + b)$:
+\begin{itemize}
+\item The neuron activates when $wx + b = 0$
+\item This occurs at $x = -b/w$
+\item Thus bias $b$ controls the breakpoint location
+\end{itemize}
+
+This is how networks position their piecewise linear segments exactly where needed. Unlike Fourier series with fixed frequencies, neural networks adaptively place their basis functions.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.8\textwidth]{figs/bias-breakpoints-detailed.png}
+\caption{Bias parameters control breakpoint locations in ReLU networks. For $h = \ReLU(x + b)$, the breakpoint occurs at $x = -b$. This allows networks to position their piecewise linear segments precisely where needed.}
+\label{fig:bias-breakpoints}
+\end{figure}
+
+\subsection{Example: Approximating $\sin(\pi x)$}
+
+Consider the specific decomposition:
+\begin{equation}
+f(x) = -20 \cdot \ReLU(-x-1) + 5 \cdot \ReLU(x+1) - 5 \cdot \ReLU(x) + 5 \cdot \ReLU(x-2) + 15 \cdot \ReLU(x-3)
+\end{equation}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\textwidth]{figs/relu-decomposition-sinpi.png}
+\caption{ReLU decomposition of $\sin(\pi x)$. Individual ReLU components (top panels) combine to approximate the target function (bottom right). Each component creates a specific piece of the piecewise linear approximation.}
+\label{fig:relu-decomposition}
+\end{figure}
+
+%----------------------------------------------------------------------------------------
+\section{Proof by Contradiction: The Hahn-Banach Argument}
+
+\subsection{The Setup}
+
+Assume neural networks are NOT dense in $C([0,1])$. Then there exists $f^* \in C([0,1])$ and $\epsilon > 0$ such that:
+\begin{equation}
+\|f^* - g\|_\infty \geq \epsilon \quad \forall g \in \mathcal{N}
+\end{equation}
+
+By Hahn-Banach theorem, there exists a linear functional $L: C([0,1]) \to \mathbb{R}$ with:
+\begin{itemize}
+\item $L(f^*) \neq 0$
+\item $L(g) = 0$ for all $g \in \mathcal{N}$
+\end{itemize}
+
+\subsection{The Measure Representation}
+
+By Riesz representation theorem, $L$ corresponds to a signed measure $\mu$:
+\begin{equation}
+L(f) = \int_0^1 f(x) d\mu(x)
+\end{equation}
+
+Since $L$ annihilates all neural networks:
+\begin{equation}
+\int_0^1 \sigma(wx + b) d\mu(x) = 0 \quad \forall w, b \in \mathbb{R}
+\end{equation}
+
+\subsection{The Half-Space Argument}
+
+For large $\lambda$, sigmoids approach step functions:
+\begin{equation}
+\sigma(\lambda(wx + b)) \to \chi_H(x) = \begin{cases} 1 & wx + b > 0 \\ 0 & wx + b < 0 \end{cases}
+\end{equation}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\textwidth]{figs/contradiction-visualization.png}
+\caption{Proof by contradiction visualization. If neural networks cannot approximate a continuous function, a detector measure $\mu$ must exist. But half-spaces can isolate any point (panels 4-6), forcing $\mu = 0$ everywhere—a contradiction since $\mu$ must detect the target function.}
+\label{fig:contradiction}
+\end{figure}
+
+Therefore $\mu$ must annihilate all half-spaces. But half-spaces can isolate any point—forcing $\mu = 0$ everywhere. This contradicts $L(f^*) \neq 0$.
+
+%----------------------------------------------------------------------------------------
+\section{Continuous vs Discontinuous: The Detector Analysis}
+
+\subsection{A Detector for Discontinuities}
+
+Consider the signed measure:
+\begin{equation}
+\mu = \begin{cases} +1 & \text{on } [0, 0.5) \\ -1 & \text{on } [0.5, 1] \end{cases}
+\end{equation}
+
+This measure acts as a "discontinuity detector."
+
+\subsection{What the Detector Reveals}
+
+For different functions, we get:
+
+\begin{enumerate}
+\item \textbf{Step function} $H(x) = \chi_{[0.5,1]}(x)$:
+\begin{equation}
+\int_0^1 H(x) d\mu = \int_0^{0.5} 0 \cdot 1 dx + \int_{0.5}^1 1 \cdot (-1) dx = -0.5
+\end{equation}
+
+\item \textbf{Continuous function} $f$ with $f(0.5^-) = f(0.5^+)$:
+\begin{equation}
+\int_0^1 f(x) d\mu \approx 0
+\end{equation}
+The positive and negative regions cancel due to continuity.
+
+\item \textbf{Neural network approximation} with sigmoid activation:
+As the sigmoid gets steeper (approaching a step), the integral still tends to 0, not -0.5.
+\end{enumerate}
+
+\subsection{The Fundamental Limitation}
+
+This detector can distinguish true discontinuities from continuous approximations. No matter how steep we make our sigmoids, they produce continuous functions that integrate to approximately 0 with our detector, while the true step function gives -0.5.
+
+This proves: \textbf{Neural networks with continuous activations cannot perfectly approximate discontinuous functions in the supremum norm.}
+
+\subsection{Different Norms Tell Different Stories}
+
+While neural networks fail to approximate discontinuities in the supremum norm, they succeed in other norms:
+
+\begin{itemize}
+\item \textbf{$L^2$ norm}: Good approximation—the "energy" is captured
+\item \textbf{$L^1$ norm}: Good approximation—the average error is small  
+\item \textbf{$L^\infty$ norm}: Poor approximation—maximum error remains large
+\end{itemize}
+
+The error concentrates in a narrow band around the discontinuity. For applications using integral norms (most PDEs, energy methods), neural networks work well even with discontinuities. For pointwise accuracy at jumps (shock waves, interfaces), special techniques are needed.
+
+%----------------------------------------------------------------------------------------
+\section{Which Activations Work?}
+
+\subsection{Universal Activations}
+
+An activation function yields universal approximation if it is:
+\begin{itemize}
+\item Non-polynomial (except in specific constructions)
+\item Non-constant
+\item Bounded or unbounded with appropriate growth conditions
+\end{itemize}
+
+Examples that work:
+\begin{itemize}
+\item Sigmoid: $\sigma(x) = 1/(1 + e^{-x})$
+\item Tanh: $\sigma(x) = \tanh(x)$
+\item ReLU: $\sigma(x) = \max(0, x)$
+\end{itemize}
+
+\subsection{Why Parabolic Activation Fails}
+
+Consider $\sigma(x) = x^2$. While two parabolas can approximate $\sin(\pi x)$ (one for each half-cycle), this is coincidental. Parabolic activation cannot:
+\begin{itemize}
+\item Create localized bumps
+\item Approximate step functions
+\item Generate sharp transitions
+\end{itemize}
+
+The key requirement for UAT is the ability to create arbitrary localized features through differences like $\ReLU(x-a) - \ReLU(x-b)$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\textwidth]{figs/parabolic-failure.png}
+\caption{Parabolic activation's coincidental success vs general failure. While two parabolas can approximate $\sin(\pi x)$ (left), they fail for step functions (middle) because they cannot create localized features. The smooth, global nature of parabolic functions prevents universal approximation.}
+\label{fig:parabolic-failure}
+\end{figure}
+
+%----------------------------------------------------------------------------------------
+\section{Width vs Depth Trade-offs}
+
+\subsection{The UAT Guarantee vs Reality}
+
+UAT guarantees ONE hidden layer suffices but says nothing about efficiency. For high-frequency functions like $\sin(100x)$:
+\begin{itemize}
+\item Shallow (100 neurons, 1 layer): error $\approx 0.15$
+\item Deep (20 neurons × 4 layers): error $\approx 0.03$
+\end{itemize}
+
+Deep networks achieve better accuracy with fewer total parameters.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\textwidth]{figs/width-vs-error.png}
+\caption{Approximation error decreases with network width. Linear scale (left) shows rapid initial improvement with diminishing returns. Log scale (right) reveals power law behavior: error $\sim N^{-\alpha}$ where $N$ is the number of neurons.}
+\label{fig:width-vs-error}
+\end{figure}
+
+\subsection{Why Depth Helps}
+
+\begin{enumerate}
+\item \textbf{Hierarchical composition}: Each layer builds on previous features
+\item \textbf{Exponential expressiveness}: Deep networks create $O(2^L)$ linear regions with $L$ layers
+\item \textbf{Efficient representation}: Complex functions often have hierarchical structure
+\end{enumerate}
+
+%----------------------------------------------------------------------------------------
+\section{Sobolev Spaces and Derivatives}
+
+\subsection{Beyond Function Values}
+
+Many applications need derivatives:
+\begin{equation}
+\mathcal{L}[u] = -\nabla^2 u + u = f
+\end{equation}
+
+This requires approximating both $u$ and $\nabla u$.
+
+\subsection{Sobolev Spaces}
+
+\begin{definition}[Sobolev Space]
+The Sobolev space $H^k(\Omega)$ consists of functions with $k$ weak derivatives in $L^2$:
+\begin{equation}
+H^k(\Omega) = \{f \in L^2(\Omega) : \partial^\alpha f \in L^2(\Omega) \text{ for } |\alpha| \leq k\}
+\end{equation}
+with norm:
+\begin{equation}
+\|f\|_{H^k}^2 = \sum_{|\alpha| \leq k} \|\partial^\alpha f\|_{L^2}^2
+\end{equation}
+\end{definition}
+
+Neural networks can approximate in Sobolev spaces—crucial for PDEs where we need both the solution and its derivatives.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\textwidth]{figs/derivative-approximation.png}
+\caption{Neural networks approximate both function and derivative. Top: Function approximation of $\sin(\pi x)$ in $L^2$. Bottom: Derivative approximation showing larger errors but still convergent. This Sobolev space approximation is essential for solving PDEs.}
+\label{fig:derivative-approx}
+\end{figure}
+
+%----------------------------------------------------------------------------------------
+\section{Implications for Scientific Computing}
+
+\subsection{Physics-Informed Neural Networks (PINNs)}
+
+For a PDE:
+\begin{equation}
+\begin{cases}
+\mathcal{L}[u] = f & \text{in } \Omega \\
+u = g & \text{on } \partial\Omega
+\end{cases}
+\end{equation}
+
+A PINN minimizes:
+\begin{equation}
+\mathcal{J} = \underbrace{\int_\Omega |\mathcal{L}[u_{NN}] - f|^2 dx}_{\text{PDE residual}} + \lambda \underbrace{\int_{\partial\Omega} |u_{NN} - g|^2 ds}_{\text{boundary condition}}
+\end{equation}
+
+UAT guarantees the continuous solution can be approximated. The $L^2$ nature of the loss means discontinuous solutions (shocks) can be approximated in an integral sense, though not pointwise.
+
+\subsection{The Continuity Assumption in Practice}
+
+Most physical solutions are piecewise continuous:
+\begin{itemize}
+\item Smooth away from interfaces
+\item Discontinuous at shocks or material boundaries
+\end{itemize}
+
+Neural networks can:
+\begin{itemize}
+\item Approximate well in smooth regions (UAT applies)
+\item Capture discontinuities in integral norms
+\item Struggle with pointwise accuracy at jumps
+\end{itemize}
+
+For true discontinuities, consider:
+\begin{itemize}
+\item Domain decomposition
+\item Adaptive activation functions
+\item Discontinuity-tracking architectures
+\end{itemize}
+
+%----------------------------------------------------------------------------------------
+\section{Summary}
+
+The Universal Approximation Theorem establishes that neural networks can approximate any continuous function. The continuity requirement isn't a technicality—it's fundamental:
+
+\begin{enumerate}
+\item \textbf{Mathematical necessity}: The detector analysis shows continuous activations cannot capture true discontinuities in supremum norm
+
+\item \textbf{Practical sufficiency}: Most applications use integral norms where discontinuities can be approximated
+
+\item \textbf{Adaptive basis}: Unlike Fourier series with fixed frequencies, neural networks learn where to place their basis functions
+
+\item \textbf{Depth advantage}: While one layer suffices theoretically, deep networks are exponentially more efficient
+
+\item \textbf{Scientific computing}: UAT provides the foundation for PINNs, with the understanding that discontinuous solutions require special treatment
+\end{enumerate}
+
+The theorem is a permission slip: it tells us neural networks CAN work for continuous functions. The detector analysis tells us WHY the continuity restriction exists. Together, they provide both the promise and the limitations of neural approximation.
+
+\end{document}

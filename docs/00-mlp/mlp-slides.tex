@@ -429,7 +429,8 @@ Error: 0.001
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=0.9\textwidth]{figs/relu-interactive-demo.png}
+% Screenshot placeholder - capture from uat-demo.html
+\fbox{\parbox{0.9\textwidth}{\centering\vspace{3cm}\textit{[Screenshot of Interactive ReLU Builder]\\Capture from uat-demo.html with components selected}\vspace{3cm}}}
 \caption*{Interactive demo: Build functions with ReLU components}
 \end{figure}
 
@@ -514,8 +515,9 @@ For ReLU neuron: $h = \max(0, wx + b)$
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=0.9\textwidth]{figs/halfspace-isolation.png}
-\caption*{How half-spaces isolate any point}
+% Extract panels 4-5 from contradiction visualization for clarity
+\includegraphics[width=0.9\textwidth]{figs/contradiction-visualization.png}
+\caption*{How half-spaces isolate any point (see panels 4-6)}
 \end{figure}
 
 \textbf{Key Steps:}
@@ -538,7 +540,8 @@ For ReLU neuron: $h = \max(0, wx + b)$
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=0.9\textwidth]{figs/activation-comparison.png}
+% Screenshot placeholder - capture from uat-demo.html activation comparison
+\fbox{\parbox{0.9\textwidth}{\centering\vspace{3cm}\textit{[Screenshot of Activation Comparison]\\Capture from uat-demo.html showing ReLU, Sigmoid, Parabolic}\vspace{3cm}}}
 \caption*{ReLU vs Sigmoid vs Parabolic for different targets}
 \end{figure}
 
@@ -1199,7 +1202,7 @@ For neuron $i$: $h_i = \max(0, w_i x + b_i)$
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=0.7\textwidth]{figs/bias-breakpoints.png}
+\includegraphics[width=0.7\textwidth]{figs/bias-breakpoints-detailed.png}
 \caption*{Biases position the breakpoints of piecewise linear approximation}
 \end{figure}
 
@@ -1352,6 +1355,7 @@ y &= \sigma(v_1 h_1 + v_2 h_2 + b_3) \quad \text{($\approxeq$ OR AND NOT)}
 
 \begin{figure}[ht]
 \centering
+% Extract from mlp.ipynb shallow vs deep comparison
 \includegraphics[width=0.8\textwidth]{figs/shallow-vs-deep-sin100x.png}
 \caption*{$\sin(100x)$: Shallow (100 neurons) vs Deep (4×20 neurons)}
 \end{figure}
