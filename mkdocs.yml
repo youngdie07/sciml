@@ -111,6 +111,7 @@ nav:
   - Multi-Layer Perceptron: 
     - MLP: 00-mlp/mlp.ipynb
     - Activation Function ReLU: 00-mlp/relu.md
+    - UAT: 00-mlp/uat-demo.md
     - Automatic Differentiation: 00-mlp/ad.md
     - Gradient Descent: 00-mlp/sgd.md
 

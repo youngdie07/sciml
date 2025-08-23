@@ -283,6 +283,9 @@ pythontex-files-*/
 # Latexian
 TSWLatexianTemp*
 
+# Claude instructions
+CLAUDE.md
+
 ## Editors:
 # WinEdt
 *.bak
