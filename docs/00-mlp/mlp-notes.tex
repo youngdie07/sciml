@@ -563,6 +563,227 @@ Neural networks can approximate in Sobolev spaces—crucial for PDEs where we ne
 \end{figure}
 
 %----------------------------------------------------------------------------------------
+\section{Backpropagation: Computing Gradients Efficiently}
+
+\subsection{The Chain Rule Foundation}
+
+Backpropagation is the algorithmic implementation of the chain rule for computing gradients in computational graphs. For a neural network with loss $L$ and parameters $\theta$, we need $\nabla_\theta L$.
+
+Consider a simple two-layer network:
+\begin{align}
+z^{(1)} &= W^{(1)}x + b^{(1)} \\
+a^{(1)} &= \sigma(z^{(1)}) \\
+z^{(2)} &= W^{(2)}a^{(1)} + b^{(2)} \\
+\hat{y} &= \sigma(z^{(2)}) \\
+L &= \frac{1}{2}\|\hat{y} - y\|^2
+\end{align}
+
+\subsection{Forward Pass}
+
+The forward pass computes activations layer by layer:
+\begin{algorithmic}
+\STATE \textbf{Input:} $x$, parameters $\{W^{(l)}, b^{(l)}\}_{l=1}^L$
+\STATE $a^{(0)} \gets x$
+\FOR{$l = 1$ to $L$}
+    \STATE $z^{(l)} \gets W^{(l)}a^{(l-1)} + b^{(l)}$
+    \STATE $a^{(l)} \gets \sigma(z^{(l)})$
+\ENDFOR
+\STATE \textbf{Output:} $\hat{y} = a^{(L)}$
+\end{algorithmic}
+
+\subsection{Backward Pass}
+
+The backward pass computes gradients using the chain rule:
+\begin{align}
+\delta^{(L)} &= \nabla_{a^{(L)}} L \odot \sigma'(z^{(L)}) \\
+\delta^{(l)} &= (W^{(l+1)})^T \delta^{(l+1)} \odot \sigma'(z^{(l)}) \\
+\nabla_{W^{(l)}} L &= \delta^{(l)} (a^{(l-1)})^T \\
+\nabla_{b^{(l)}} L &= \delta^{(l)}
+\end{align}
+
+where $\odot$ denotes element-wise multiplication.
+
+\subsection{Computational Complexity}
+
+Backpropagation has the same computational complexity as the forward pass—$O(N)$ where $N$ is the number of parameters. This efficiency is crucial for training large networks.
+
+%----------------------------------------------------------------------------------------
+\section{Automatic Differentiation}
+
+\subsection{Beyond Symbolic and Numerical Differentiation}
+
+Three approaches to computing derivatives:
+
+\begin{enumerate}
+\item \textbf{Symbolic:} Manipulate expressions algebraically
+   \begin{itemize}
+   \item Exact derivatives
+   \item Expression swell problem
+   \item Example: $\frac{d}{dx}[\sin(x)] = \cos(x)$
+   \end{itemize}
+
+\item \textbf{Numerical:} Finite differences
+   \begin{itemize}
+   \item $f'(x) \approx \frac{f(x+h) - f(x)}{h}$
+   \item Truncation and roundoff errors
+   \item $O(n)$ function evaluations for gradient
+   \end{itemize}
+
+\item \textbf{Automatic:} Decompose into elementary operations
+   \begin{itemize}
+   \item Machine precision accuracy
+   \item Same cost as function evaluation
+   \item Foundation of modern deep learning
+   \end{itemize}
+\end{enumerate}
+
+\subsection{Forward Mode AD}
+
+Forward mode computes directional derivatives by propagating tangents:
+
+\begin{align}
+v_0 &= x, \quad \dot{v}_0 = 1 \\
+v_1 &= \sin(v_0), \quad \dot{v}_1 = \cos(v_0) \cdot \dot{v}_0 \\
+v_2 &= v_0 \cdot v_1, \quad \dot{v}_2 = \dot{v}_0 \cdot v_1 + v_0 \cdot \dot{v}_1
+\end{align}
+
+Cost: One forward pass per input dimension.
+
+\subsection{Reverse Mode AD (Backpropagation)}
+
+Reverse mode computes gradients by propagating adjoints:
+
+\begin{align}
+\bar{v}_n &= 1 \quad \text{(seed)} \\
+\bar{v}_i &= \sum_{j: i \in \text{parents}(j)} \bar{v}_j \frac{\partial v_j}{\partial v_i}
+\end{align}
+
+Cost: One forward pass + one backward pass for full gradient.
+
+\subsection{Computational Graph Example}
+
+For $f(x_1, x_2) = x_1 x_2 + \sin(x_1)$:
+
+\begin{verbatim}
+Forward:
+  x1 ---> sin ---> +
+      \          /
+       --> * ---/
+      /
+  x2 --
+
+Reverse:
+  ∂f/∂x1 = x2 + cos(x1)
+  ∂f/∂x2 = x1
+\end{verbatim}
+
+%----------------------------------------------------------------------------------------
+\section{Gradient Descent and Optimization}
+
+\subsection{Basic Gradient Descent}
+
+The fundamental optimization algorithm:
+\begin{equation}
+\theta_{t+1} = \theta_t - \eta \nabla_\theta L(\theta_t)
+\end{equation}
+
+where $\eta$ is the learning rate.
+
+\subsection{Stochastic Gradient Descent (SGD)}
+
+Instead of using the full dataset, use mini-batches:
+\begin{equation}
+\theta_{t+1} = \theta_t - \eta \nabla_\theta L(\theta_t; \mathcal{B}_t)
+\end{equation}
+
+where $\mathcal{B}_t$ is a random mini-batch.
+
+\subsection{Momentum Methods}
+
+Add velocity to escape local minima:
+\begin{align}
+v_{t+1} &= \beta v_t + (1-\beta) \nabla_\theta L(\theta_t) \\
+\theta_{t+1} &= \theta_t - \eta v_{t+1}
+\end{align}
+
+\subsection{Adaptive Learning Rates (Adam)}
+
+Adapt learning rates per parameter:
+\begin{align}
+m_t &= \beta_1 m_{t-1} + (1-\beta_1) g_t \\
+v_t &= \beta_2 v_{t-1} + (1-\beta_2) g_t^2 \\
+\hat{m}_t &= m_t / (1 - \beta_1^t) \\
+\hat{v}_t &= v_t / (1 - \beta_2^t) \\
+\theta_t &= \theta_{t-1} - \eta \hat{m}_t / (\sqrt{\hat{v}_t} + \epsilon)
+\end{align}
+
+%----------------------------------------------------------------------------------------
+\section{Experimental Results: Depth vs Width}
+
+\subsection{High-Frequency Function Approximation}
+
+Consider approximating $f(x) = \sin(100x)$ on $[0,1]$:
+
+\begin{itemize}
+\item \textbf{Shallow Network:} 100 neurons, 1 hidden layer
+   \begin{itemize}
+   \item Parameters: 200 (100 input-to-hidden + 100 hidden-to-output)
+   \item RMSE: 0.718
+   \item Struggles with rapid oscillations
+   \end{itemize}
+
+\item \textbf{Deep Network:} 20 neurons per layer, 4 layers
+   \begin{itemize}
+   \item Parameters: 1240 (20 + 3×400 + 20)
+   \item RMSE: 0.478 (50\% improvement)
+   \item Better captures high-frequency patterns
+   \end{itemize}
+\end{itemize}
+
+\subsection{Why Depth Helps}
+
+Deep networks excel at:
+\begin{enumerate}
+\item \textbf{Hierarchical composition:} Build complex functions from simple pieces
+\item \textbf{Exponential expressivity:} Each layer can double the number of linear regions
+\item \textbf{Feature reuse:} Intermediate layers learn reusable representations
+\end{enumerate}
+
+The shallow network needs $O(2^n)$ neurons to represent functions that a deep network can represent with $O(n)$ layers.
+
+%----------------------------------------------------------------------------------------
+\section{Physics-Informed Neural Networks (PINNs)}
+
+\subsection{The Idea}
+
+Instead of just fitting data, incorporate physical laws directly into the loss function:
+\begin{equation}
+L = L_{\text{data}} + \lambda L_{\text{physics}}
+\end{equation}
+
+For a PDE $\mathcal{F}[u] = 0$:
+\begin{equation}
+L_{\text{physics}} = \frac{1}{N}\sum_{i=1}^N |\mathcal{F}[u_\theta](x_i)|^2
+\end{equation}
+
+\subsection{Example: Poisson Equation}
+
+For $-\nabla^2 u = f$ with $u|_{\partial\Omega} = g$:
+\begin{align}
+L = &\frac{1}{N_{\text{int}}}\sum_{i=1}^{N_{\text{int}}} \left|\frac{\partial^2 u_\theta}{\partial x^2}(x_i) + \frac{\partial^2 u_\theta}{\partial y^2}(x_i) + f(x_i)\right|^2 \\
+    &+ \frac{1}{N_{\text{bc}}}\sum_{j=1}^{N_{\text{bc}}} |u_\theta(x_j) - g(x_j)|^2
+\end{align}
+
+\subsection{Advantages of PINNs}
+
+\begin{enumerate}
+\item \textbf{Mesh-free:} No need for grid generation
+\item \textbf{High dimensions:} Avoid curse of dimensionality
+\item \textbf{Inverse problems:} Can infer parameters from data
+\item \textbf{Irregular domains:} Handle complex geometries naturally
+\end{enumerate}
+
+%----------------------------------------------------------------------------------------
 \section{Implications for Scientific Computing}
 
 \subsection{Physics-Informed Neural Networks (PINNs)}

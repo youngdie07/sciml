@@ -1475,7 +1475,6 @@ $$\|f\|_2 = \sqrt{\langle f, f \rangle}$$
 \end{frame}
 
 %----------------------------------------------------------------------------------------
-\section{Two Proofs of UAT}
 
 \begin{frame}{Constructive Proof with ReLU}
 \textbf{Key idea:} Build piecewise linear approximations
@@ -1741,30 +1740,42 @@ Hidden space: Linearly separable
 \section{Depth vs Width Trade-offs}
 
 \begin{frame}{Beyond XOR: High-Frequency Functions}
-\textbf{Target:} $\sin(100x)$
-
-\begin{columns}
-\column{0.35\textwidth}
-\textbf{Shallow (1 layer):}
-\begin{itemize}
-    \item 100 neurons
-    \item Error: 0.15
-    \item Poor approximation
-\end{itemize}
-
-\textbf{Deep (4 layers):}
-\begin{itemize}
-    \item 20 neurons each
-    \item Error: 0.03
-    \item Much better!
-\end{itemize}
-
-\column{0.65\textwidth}
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{figs/shallow-vs-deep-sin100x.png}
+    \includegraphics[width=0.92\textwidth]{figs/shallow-vs-deep-sin100x.png}
 \end{figure}
+
+\vspace{-0.5em}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Shallow Network:}
+\begin{itemize}
+    \item 100 neurons, 1 hidden layer
+    \item RMSE: 0.718
+    \item Struggles with high frequency
+\end{itemize}
+\column{0.5\textwidth}
+\textbf{Deep Network:}
+\begin{itemize}
+    \item 20 neurons × 4 layers
+    \item RMSE: 0.478 (50\% better)
+    \item Captures oscillations well
+\end{itemize}
 \end{columns}
+\end{frame}
+
+\begin{frame}{Network Architecture Comparison}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.95\textwidth]{figs/network-architectures-transparent.png}
+\end{figure}
+
+\begin{itemize}
+    \item \textbf{Parameters:} Both networks have similar parameter counts
+    \item \textbf{Shallow:} 100 input-to-hidden + 100 hidden-to-output = 200 weights
+    \item \textbf{Deep:} 20 + 20×20×3 + 20 = 1240 weights
+    \item \textbf{Key difference:} Compositional structure in deep networks
+\end{itemize}
 
 \textbf{Why depth helps:}
 Hierarchical composition of features
@@ -1803,72 +1814,6 @@ Hierarchical composition of features
 \begin{block}{Key Insight}
 Depth enables exponentially more efficient representations than width alone
 \end{block}
-\end{frame}
-
-%----------------------------------------------------------------------------------------
-\section{Practical Implications for SciML}
-
-\begin{frame}{Physics-Informed Neural Networks}
-\textbf{Key idea:} Embed physics in loss function
-
-$$L = L_{data} + \lambda_{PDE} L_{PDE} + \lambda_{BC} L_{BC}$$
-
-\textbf{Components:}
-\begin{itemize}
-    \item $L_{data}$: Fit observations
-    \item $L_{PDE}$: Satisfy differential equation
-    \item $L_{BC}$: Enforce boundaries
-\end{itemize}
-
-\textbf{Example - Poisson equation:}
-$$L_{PDE} = \int_\Omega \left|\frac{\partial^2 u_{NN}}{\partial x^2} + f\right|^2 dx$$
-
-\textbf{Advantages:}
-\begin{itemize}
-    \item Mesh-free
-    \item Handles sparse data
-    \item Automatic differentiation for derivatives
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Applications in Scientific Computing}
-\begin{columns}
-\column{0.5\textwidth}
-\textbf{Current applications:}
-\begin{itemize}
-    \item Solving PDEs
-    \item Inverse problems
-    \item Surrogate modeling
-    \item Constitutive modeling
-    \item Turbulence closure
-\end{itemize}
-
-\textbf{Advantages:}
-\begin{itemize}
-    \item Continuous solutions
-    \item Handle high dimensions
-    \item Incorporate data naturally
-    \item Uncertainty quantification
-\end{itemize}
-
-\column{0.5\textwidth}
-\textbf{Challenges:}
-\begin{itemize}
-    \item Training difficulty
-    \item Boundary conditions
-    \item Conservation laws
-    \item Extrapolation
-    \item Interpretability
-\end{itemize}
-
-\textbf{Active research:}
-\begin{itemize}
-    \item Neural operators
-    \item Graph neural networks
-    \item Fourier neural operators
-    \item DeepONet
-\end{itemize}
-\end{columns}
 \end{frame}
 
 %----------------------------------------------------------------------------------------
