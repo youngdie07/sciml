@@ -296,6 +296,163 @@ This is equivalent to: $h_2 = W_{eq} x + b_{eq}$ (still linear!)
 \end{frame}
 
 %------------------------------------------------
+\section{From Polynomials to Neural Networks}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{A Historical Perspective: The Weierstrass Approximation Theorem}
+
+\begin{center}
+\Large{\textbf{Can polynomials approximate ANY continuous function?}}
+\end{center}
+
+\vspace{0.5cm}
+
+\textbf{Answer: YES! (Weierstrass 1885)}
+
+\begin{theorem}[Weierstrass Approximation Theorem]
+Every continuous function on a closed interval $[a, b]$ can be uniformly approximated as closely as desired by a polynomial function.
+\end{theorem}
+
+\begin{itemize}
+\item For any continuous $f: [a, b] \to \mathbb{R}$ and any $\epsilon > 0$
+\item There exists a polynomial $p(x)$ such that:
+$$\sup_{x \in [a,b]} |f(x) - p(x)| < \epsilon$$
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Why Weierstrass Matters for Neural Networks}
+
+\begin{columns}[c]
+\column{0.5\textwidth}
+\textbf{Polynomials}
+\begin{itemize}
+\item Building blocks: $1, x, x^2, x^3, ...$
+\item Linear combinations: $\sum a_i x^i$
+\item Universal approximators (1885)
+\item Global support
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Neural Networks}
+\begin{itemize}
+\item Building blocks: activation functions
+\item Linear combinations + nonlinearity
+\item Universal approximators (1989)
+\item Local support (ReLU)
+\end{itemize}
+\end{columns}
+
+\vspace{0.5cm}
+
+\begin{center}
+\textbf{Key Insight:} Both achieve universal approximation through \\ linear combinations of simple basis functions!
+\end{center}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Polynomial Approximation in Action}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.9\textwidth]{figs/polynomial-approximation-sinpi.png}
+\end{figure}
+
+\begin{itemize}
+\item Higher degree $\rightarrow$ better approximation
+\item Error decreases exponentially with degree
+\item But: high-degree polynomials can oscillate (Runge's phenomenon)
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Bernstein Polynomials: A Constructive Proof}
+
+The Weierstrass theorem has a beautiful constructive proof using \textbf{Bernstein polynomials}:
+
+$$B_n(f; x) = \sum_{k=0}^{n} f\left(\frac{k}{n}\right) \binom{n}{k} x^k (1-x)^{n-k}$$
+
+\begin{figure}
+\centering
+\includegraphics[width=0.85\textwidth]{figs/bernstein-approximation.png}
+\end{figure}
+
+\begin{itemize}
+\item Converges uniformly to $f$ as $n \to \infty$
+\item Always stays within range of function
+\item Forms basis for Bézier curves in computer graphics!
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Polynomials vs Neural Networks: Direct Comparison}
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{figs/polynomial-vs-nn-comparison.png}
+\end{figure}
+
+\vspace{-0.3cm}
+
+\begin{columns}[c]
+\column{0.5\textwidth}
+\textbf{Polynomial (degree 9)}
+\begin{itemize}
+\item 10 parameters
+\item Global support
+\item Can oscillate wildly
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Neural Network (10 hidden)}
+\begin{itemize}
+\item 21 parameters
+\item Local support (Sigmoid)
+\item Stable approximation
+\end{itemize}
+\end{columns}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{From Weierstrass to Universal Approximation}
+
+\begin{center}
+\textbf{The Evolution of Approximation Theory}
+\end{center}
+
+\begin{table}
+\begin{tabular}{l|l|l}
+\textbf{Year} & \textbf{Result} & \textbf{Key Insight} \\
+\hline
+1885 & Weierstrass & Polynomials are universal \\
+1900s & Stone-Weierstrass & Generalized to other algebras \\
+1957 & Kolmogorov & Multi-variable functions \\
+1989 & Cybenko & Single-layer NNs are universal \\
+1991 & Hornik & Any activation function works \\
+2017+ & Deep Learning & Depth is exponentially efficient \\
+\end{tabular}
+\end{table}
+
+\vspace{0.5cm}
+
+\begin{center}
+\textbf{Neural networks are the latest chapter in a long mathematical story!}
+\end{center}
+
+\end{frame}
+
+%------------------------------------------------
 \section{Universal Approximation Theorem}
 
 %------------------------------------------------
