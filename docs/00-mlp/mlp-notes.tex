@@ -29,8 +29,8 @@
 \newtheorem{example}{Example}[section]
 \newtheorem{remark}{Remark}[section]
 
-\title{Neural Networks and Universal Approximation}
-\author{Course Notes}
+\title{Neural Networks and Function Approximation}
+\author{Krishna Kumar}
 \date{}
 
 \begin{document}
@@ -508,7 +508,7 @@ The key requirement for UAT is the ability to create arbitrary localized feature
 UAT guarantees ONE hidden layer suffices but says nothing about efficiency. For high-frequency functions like $\sin(100x)$:
 \begin{itemize}
 \item Shallow (100 neurons, 1 layer): error $\approx 0.15$
-\item Deep (20 neurons × 4 layers): error $\approx 0.03$
+\item Deep (20 neurons $\times$ 4 layers): error $\approx 0.03$
 \end{itemize}
 
 Deep networks achieve better accuracy with fewer total parameters.
@@ -673,8 +673,8 @@ Forward:
   x2 --
 
 Reverse:
-  ∂f/∂x1 = x2 + cos(x1)
-  ∂f/∂x2 = x1
+  \partial f/\partial x_1 = x_2 + \cos(x_1)
+  \partial f/\partial x_2 = x_1
 \end{verbatim}
 
 %----------------------------------------------------------------------------------------
@@ -734,7 +734,7 @@ Consider approximating $f(x) = \sin(100x)$ on $[0,1]$:
 
 \item \textbf{Deep Network:} 20 neurons per layer, 4 layers
    \begin{itemize}
-   \item Parameters: 1240 (20 + 3×400 + 20)
+   \item Parameters: 1240 ($20 + 3 \times 400 + 20$)
    \item RMSE: 0.478 (50\% improvement)
    \item Better captures high-frequency patterns
    \end{itemize}
@@ -786,19 +786,12 @@ L = &\frac{1}{N_{\text{int}}}\sum_{i=1}^{N_{\text{int}}} \left|\frac{\partial^2 
 %----------------------------------------------------------------------------------------
 \section{Implications for Scientific Computing}
 
-\subsection{Physics-Informed Neural Networks (PINNs)}
-
 For a PDE:
 \begin{equation}
 \begin{cases}
 \mathcal{L}[u] = f & \text{in } \Omega \\
 u = g & \text{on } \partial\Omega
 \end{cases}
-\end{equation}
-
-A PINN minimizes:
-\begin{equation}
-\mathcal{J} = \underbrace{\int_\Omega |\mathcal{L}[u_{NN}] - f|^2 dx}_{\text{PDE residual}} + \lambda \underbrace{\int_{\partial\Omega} |u_{NN} - g|^2 ds}_{\text{boundary condition}}
 \end{equation}
 
 UAT guarantees the continuous solution can be approximated. The $L^2$ nature of the loss means discontinuous solutions (shocks) can be approximated in an integral sense, though not pointwise.
