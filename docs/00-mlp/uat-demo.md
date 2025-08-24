@@ -1,61 +1,8 @@
-# Universal Approximation Theorem: Interactive Demo
+# Universal Approximation Theorem: Interactive Demos
 
 ## ReLU Network Approximation Visualization
 
-This demo shows how a neural network with ReLU activation functions can approximate any continuous function by combining shifted and scaled ReLU units.
-
-## Mathematical Foundations
-
-### Function Spaces for SciML
-
-In Scientific Machine Learning, we work with functions as our primary objects. To understand what neural networks can approximate, we need a mathematical framework for measuring "closeness" between functions.
-
-### Banach Spaces: The Setting for Approximation
-
-A **Banach space** is a complete normed vector space. For functions:
-
-- **Vector space**: We can add functions and multiply by scalars
-- **Norm** $\|f\|$: Measures the "size" of a function
-- **Completeness**: Cauchy sequences converge to a limit in the space
-
-Common norms for continuous functions on $[a,b]$:
-
-$$\|f\|_\infty = \sup_{x \in [a,b]} |f(x)|$$
-
-$$\|f\|_2 = \left(\int_a^b |f(x)|^2 dx\right)^{1/2}$$
-
-### Hilbert Spaces: Adding Geometry
-
-A **Hilbert space** is a Banach space with an inner product:
-
-$$\langle f, g \rangle = \int_a^b f(x)g(x) dx$$
-
-This enables:
-- Orthogonality: $\langle f, g \rangle = 0$
-- Projections: Finding best approximations
-- Basis expansions: $f = \sum_{i} c_i \phi_i$
-
-### Density: The Key Concept
-
-A subset $S$ is **dense** in a space $X$ if every element of $X$ can be approximated arbitrarily well by elements from $S$.
-
-**Universal Approximation Theorem**: Neural networks form a dense subset in $C([a,b])$.
-
-## ReLU Approximation: How It Works
-
-A single-layer neural network with ReLU activations can be written as:
-
-$$f_{NN}(x) = \sum_{i=1}^{n} w_i \cdot \text{ReLU}(x - b_i)$$
-
-where $\text{ReLU}(x) = \max(0, x)$.
-
-### Example: Neural Network with ReLU Activation
-
-A single-layer neural network with 5 ReLU neurons can be expressed as:
-
-$$f_{NN}(x) = -20\cdot\text{ReLU}(-x-1) + 5\cdot\text{ReLU}(x+1) - 5\cdot\text{ReLU}(x) + 5\cdot\text{ReLU}(x-2) + 15\cdot\text{ReLU}(x-3)$$
-
-This network approximates $f(x) = x^3 - 3x^2 + 2x + 5$ for $x \in [-3, 5]$.
+This interactive demo shows how a neural network decomposes functions into ReLU components. The example network uses 5 ReLU neurons to approximate a cubic function.
 
 <div id="relu-components-demo">
   <h3>Interactive ReLU Decomposition</h3>
@@ -93,33 +40,13 @@ This network approximates $f(x) = x^3 - 3x^2 + 2x + 5$ for $x \in [-3, 5]$.
 
 
 
-**Graphing Demo:**[![Try](https://img.shields.io/badge/Try-Graph-orange?style=flat-square&logo=firefox&logoColor=orange)](https://www.desmos.com/calculator/6sbcqpf2cb)
+## External Visualization
+
+[![Try Desmos Graph](https://img.shields.io/badge/Try-Desmos_Graph-orange?style=flat-square&logo=firefox&logoColor=orange)](https://www.desmos.com/calculator/6sbcqpf2cb)
 
 <iframe src="https://www.desmos.com/calculator/6sbcqpf2cb?embed" width="500" height="500" style="border: 1px solid #ccc" frameborder=0></iframe>
 
-
-## Constructive Proof with ReLU
-
-### Building Blocks
-
-A single ReLU neuron creates a "hinge" function:
-
-$$h_i(x) = \max(0, w_i x + b_i)$$
-
-**Key insight:** The bias term $b_i$ determines the "breakpoint" where the ReLU activates:
-- ReLU activates when $w_i x + b_i = 0$, i.e., at $x = -b_i/w_i$
-- This breakpoint is exactly where the piecewise linear approximation changes slope
-- By setting biases appropriately, we place breakpoints at the boundaries of our approximation intervals
-
-### Creating Bump Functions
-
-Two ReLU units can create a "bump":
-
-$$\text{bump}(x) = \text{ReLU}(x - a) - \text{ReLU}(x - b)$$
-
-This is positive only in $[a, b]$.
-
-### Step Function Approximation
+## Step Function Approximation
 
 <div id="relu-construction">
   <canvas id="relu-steps" width="800" height="400"></canvas>
@@ -129,13 +56,6 @@ This is positive only in $[a, b]$.
     </label>
   </div>
 </div>
-
-### Algorithm
-
-1. Divide domain into $n$ intervals
-2. Create a bump for each interval
-3. Set bump height to match target function
-4. As $n \to \infty$, approximation becomes exact
 
 ## Activation Function Comparison
 
@@ -165,46 +85,11 @@ This demo compares how different activation functions approximate a target funct
   </div>
 </div>
 
-### Key Insights
-- **ReLU**: Creates piecewise constant approximation (step functions) - works for ALL continuous functions
-- **Sigmoid**: Creates smooth step-like transitions - also works for ALL continuous functions  
-- **Parabolic (x²)**: **NOT universal** - may accidentally work for specific functions (like sine with 2 units) but fails for step functions, sawtooth, etc.
+### Key Observations
 
-**Why parabolic fails UAT:** The key requirement for UAT is the ability to create arbitrary localized "bumps" that can be combined. ReLU and sigmoid can create these bumps through differences (ReLU(x-a) - ReLU(x-b)), but parabolic functions cannot create the sharp transitions needed for general approximation. The fact that 2 parabolas can approximate sin(πx) or sin(2πx) is just a coincidence (one parabola for each half-cycle) - it doesn't generalize to other functions!
-
-## Hahn-Banach Proof (Contradiction)
-
-### Setup
-
-1. **Assume** neural networks are not dense in $C([a,b])$
-2. **Then** there exists $f^* \in C([a,b])$ and $\epsilon > 0$ such that:
-   $$\|f^* - g\|_\infty > \epsilon \quad \forall g \in \text{NN}$$
-
-### The Contradiction
-
-By Hahn-Banach theorem, there exists a non-zero linear functional $L$ such that:
-- $L(g) = 0$ for all neural network functions $g$
-- $L(f^*) \neq 0$
-
-### Key Insight
-
-For non-polynomial activation functions $\sigma$:
-- The span of $\{\sigma(w \cdot x + b)\}$ is dense
-- This forces $L = 0$, a contradiction!
-
-## Approximation Rates
-
-### Width vs Accuracy
-
-For smooth functions, approximation error scales as:
-
-$$\|f - f_{NN}\|_\infty = O\left(\frac{1}{\sqrt{n}}\right)$$
-
-where $n$ is the number of hidden neurons.
-
-### Depth Benefits
-
-Deeper networks can achieve exponentially better rates for certain function classes.
+Watch how different activation functions approximate various target functions:
+- **ReLU & Sigmoid**: Universal approximators (work for all continuous functions)
+- **Parabolic**: Not universal (may work for specific cases but fails generally)
 
 <script>
 // ReLU Decomposition Visualization
