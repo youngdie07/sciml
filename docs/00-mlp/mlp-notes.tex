@@ -205,9 +205,9 @@ Both achieve universal approximation through linear combinations of basis functi
 
 Consider approximating $\sin(\pi x)$ on $[0,1]$ using polynomials of increasing degree. The approximation improves as we increase the degree:
 
-\begin{figure}[h]
+\begin{figure}[h!]
 \centering
-\includegraphics[width=0.9\textwidth]{figs/polynomial-approximation-sinpi.png}
+\includegraphics[width=0.7\textwidth]{figs/polynomial-approximation-sinpi.png}
 \caption{Polynomial approximation of $\sin(\pi x)$ with increasing degrees. The approximation error decreases exponentially as the polynomial degree increases, demonstrating the Weierstrass theorem.}
 \label{fig:polynomial-approx}
 \end{figure}
@@ -236,9 +236,9 @@ These polynomials:
 \item Form the basis for Bézier curves in computer graphics
 \end{itemize}
 
-\begin{figure}[h]
+\begin{figure}[h!]
 \centering
-\includegraphics[width=0.9\textwidth]{figs/bernstein-approximation.png}
+\includegraphics[width=0.65\textwidth]{figs/bernstein-approximation.png}
 \caption{Bernstein polynomial approximation of $\sin(\pi x)$ for different values of $n$. As $n$ increases, the approximation converges uniformly to the target function.}
 \label{fig:bernstein-approx}
 \end{figure}
@@ -264,9 +264,9 @@ Neural networks address these limitations:
 
 \subsection{Comparison: Polynomials vs Neural Networks}
 
-\begin{figure}[h]
+\begin{figure}[h!]
 \centering
-\includegraphics[width=\textwidth]{figs/polynomial-vs-nn-comparison.png}
+\includegraphics[width=0.75\textwidth]{figs/polynomial-vs-nn-comparison.png}
 \caption{Direct comparison between polynomial (degree 9) and neural network (10 hidden units with sigmoid activation) approximation of $\sin(\pi x)$. Both achieve good approximation but with different characteristics.}
 \label{fig:poly-vs-nn}
 \end{figure}
@@ -348,9 +348,9 @@ For a neuron with activation $h = \ReLU(wx + b)$:
 
 This is how networks position their piecewise linear segments exactly where needed. Unlike Fourier series with fixed frequencies, neural networks adaptively place their basis functions.
 
-\begin{figure}[ht]
+\begin{figure}[h!]
 \centering
-\includegraphics[width=0.8\textwidth]{figs/bias-breakpoints-detailed.png}
+\includegraphics[width=0.7\textwidth]{figs/bias-breakpoints-detailed.png}
 \caption{Bias parameters control breakpoint locations in ReLU networks. For $h = \ReLU(x + b)$, the breakpoint occurs at $x = -b$. This allows networks to position their piecewise linear segments precisely where needed.}
 \label{fig:bias-breakpoints}
 \end{figure}
@@ -362,9 +362,9 @@ Consider the specific decomposition:
 f(x) = -20 \cdot \ReLU(-x-1) + 5 \cdot \ReLU(x+1) - 5 \cdot \ReLU(x) + 5 \cdot \ReLU(x-2) + 15 \cdot \ReLU(x-3)
 \end{equation}
 
-\begin{figure}[ht]
+\begin{figure}[h!]
 \centering
-\includegraphics[width=0.9\textwidth]{figs/relu-decomposition-sinpi.png}
+\includegraphics[width=0.75\textwidth]{figs/relu-decomposition-sinpi.png}
 \caption{ReLU decomposition of $\sin(\pi x)$. Individual ReLU components (top panels) combine to approximate the target function (bottom right). Each component creates a specific piece of the piecewise linear approximation.}
 \label{fig:relu-decomposition}
 \end{figure}
@@ -404,10 +404,10 @@ For large $\lambda$, sigmoids approach step functions:
 \sigma(\lambda(wx + b)) \to \chi_H(x) = \begin{cases} 1 & wx + b > 0 \\ 0 & wx + b < 0 \end{cases}
 \end{equation}
 
-\begin{figure}[ht]
+\begin{figure}[h!]
 \centering
-\includegraphics[width=0.9\textwidth]{figs/contradiction-visualization.png}
-\caption{Proof by contradiction visualization. If neural networks cannot approximate a continuous function, a detector measure $\mu$ must exist. But half-spaces can isolate any point (panels 4-6), forcing $\mu = 0$ everywhere—a contradiction since $\mu$ must detect the target function.}
+\includegraphics[width=0.45\textwidth]{figs/contradiction-visualization.png}
+\caption{Proof by contradiction visualization. If neural networks cannot approximate a continuous function, a detector measure $\mu$ must exist. But half-spaces can isolate any point, forcing $\mu = 0$ everywhere—a contradiction since $\mu$ must detect the target function.}
 \label{fig:contradiction}
 \end{figure}
 
@@ -555,9 +555,9 @@ with norm:
 
 Neural networks can approximate in Sobolev spaces—crucial for PDEs where we need both the solution and its derivatives.
 
-\begin{figure}[ht]
+\begin{figure}[h!]
 \centering
-\includegraphics[width=0.9\textwidth]{figs/derivative-approximation.png}
+\includegraphics[width=0.7\textwidth]{figs/derivative-approximation.png}
 \caption{Neural networks approximate both function and derivative. Top: Function approximation of $\sin(\pi x)$ in $L^2$. Bottom: Derivative approximation showing larger errors but still convergent. This Sobolev space approximation is essential for solving PDEs.}
 \label{fig:derivative-approx}
 \end{figure}
@@ -639,8 +639,15 @@ Three approaches to computing derivatives:
 
 \subsection{Forward Mode AD}
 
-Forward mode computes directional derivatives by propagating tangents:
+Forward mode computes directional derivatives by propagating tangents alongside function values:
 
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.75\textwidth]{figs/ad3.png}
+\caption{Forward mode automatic differentiation. Each operation computes both the value and its derivative (tangent) simultaneously. The derivative flows forward through the computational graph.}
+\end{figure}
+
+For each elementary operation, we compute:
 \begin{align}
 v_0 &= x, \quad \dot{v}_0 = 1 \\
 v_1 &= \sin(v_0), \quad \dot{v}_1 = \cos(v_0) \cdot \dot{v}_0 \\
@@ -651,31 +658,37 @@ Cost: One forward pass per input dimension.
 
 \subsection{Reverse Mode AD (Backpropagation)}
 
-Reverse mode computes gradients by propagating adjoints:
+Reverse mode computes gradients by propagating adjoints backward through the computational graph:
 
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.75\textwidth]{figs/ad7.png}
+\caption{Reverse mode automatic differentiation (backpropagation). After a forward pass computes all intermediate values, gradients are propagated backward from output to inputs using the chain rule.}
+\end{figure}
+
+The adjoint computation follows:
 \begin{align}
 \bar{v}_n &= 1 \quad \text{(seed)} \\
 \bar{v}_i &= \sum_{j: i \in \text{parents}(j)} \bar{v}_j \frac{\partial v_j}{\partial v_i}
 \end{align}
 
-Cost: One forward pass + one backward pass for full gradient.
+Cost: One forward pass + one backward pass for full gradient. This is why backpropagation is so efficient for neural networks—we get all parameter gradients in just two passes!
 
 \subsection{Computational Graph Example}
 
 For $f(x_1, x_2) = x_1 x_2 + \sin(x_1)$:
 
-\begin{verbatim}
-Forward:
-  x1 ---> sin ---> +
-      \          /
-       --> * ---/
-      /
-  x2 --
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\textwidth]{figs/ad1.png}
+\caption{Computational graph for $f(x_1, x_2) = x_1 x_2 + \sin(x_1)$. Forward mode propagates derivatives from inputs to outputs, while reverse mode propagates gradients from outputs to inputs.}
+\end{figure}
 
-Reverse:
-  \partial f/\partial x_1 = x_2 + \cos(x_1)
-  \partial f/\partial x_2 = x_1
-\end{verbatim}
+The gradients computed via reverse mode:
+\begin{align}
+\frac{\partial f}{\partial x_1} &= x_2 + \cos(x_1) \\
+\frac{\partial f}{\partial x_2} &= x_1
+\end{align}
 
 %----------------------------------------------------------------------------------------
 \section{Gradient Descent and Optimization}
