@@ -1,6 +1,6 @@
 %**************************************************************************************
-% License:
-% CC BY-NC-SA 4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)
+% Neural Networks and Function Approximation - COMPREHENSIVE REORGANIZED VERSION
+% All content from original preserved, just reorganized according to reorganized_presentation.md
 %**************************************************************************************
 
 \documentclass[aspectratio=169]{beamer}
@@ -36,11 +36,16 @@
 \usepackage{listings}
 \usepackage{algorithm}
 \usepackage{algorithmic}
+\usetikzlibrary{shapes,arrows,positioning,calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
 
 % Define math operators
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator{\ReLU}{ReLU}
+\DeclareMathOperator{\sign}{sign}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
 
 % Code listing style
 \lstset{
@@ -55,12 +60,6 @@
     numbers=left,
     numberstyle=\tiny
 }
-
-%\AtBeginSection[]{
-%	\begin{frame}{Outline}
-%		\tableofcontents[currentsection, hideallsubsections]
-%	\end{frame}
-%}
 
 %----------------------------------------------------------------------------------------
 %	TITLE PAGE
@@ -85,198 +84,210 @@
 \tableofcontents
 \end{frame}
 
-%----------------------------------------------------------------------------------------
-% SECTION 1: Introduction and Motivation
-%----------------------------------------------------------------------------------------
-\section{Introduction and Motivation}
+%========================================================================================
+% PART I: MOTIVATION AND PROBLEM SETUP
+%========================================================================================
+\section{Part I: Motivation and Problem Setup}
 
 \begin{frame}{The Central Challenge}
 \begin{block}{Core Question}
 Can we build a machine that learns to approximate any continuous function from data?
 \end{block}
 
-\vspace{0.5cm}
+\vspace{0.5em}
 
 \textbf{Applications in Scientific Machine Learning:}
 \begin{itemize}
-    \item Solving PDEs without mesh generation
-    \item Learning constitutive models from experiments
-    \item Surrogate modeling for expensive simulations
-    \item System identification and control
-    \item Inverse problems
+    \item Solving partial differential equations (PDEs) without meshes
+    \item Learning constitutive models from experimental data
+    \item Discovering governing equations from observations
+    \item Building surrogate models for optimization
+    \item Uncertainty quantification in complex systems
 \end{itemize}
 
-\vspace{0.5cm}
+\vspace{0.5em}
 
-\textbf{What we'll cover:}
+\textbf{What we'll explore:}
 \begin{itemize}
-    \item Mathematical foundations (Weierstrass $\rightarrow$ UAT)
-    \item Building blocks (perceptron $\rightarrow$ networks)
-    \item Training algorithms (gradient descent, backpropagation)
-    \item Automatic differentiation
-    \item Practical implementation
+    \item Mathematical foundations (Weierstrass → Universal Approximation)
+    \item Building blocks (perceptron → deep networks)
+    \item Training algorithms (gradient descent → backpropagation)
+    \item Practical considerations (architecture, regularization)
 \end{itemize}
 \end{frame}
 
-%----------------------------------------------------------------------------------------
-% SECTION 2: The Benchmark Problem
-%----------------------------------------------------------------------------------------
-\section{The 1D Poisson Equation: Our Benchmark Problem}
-
-\begin{frame}{Problem Formulation}
+\begin{frame}{The Benchmark Problem: 1D Poisson Equation}
 \begin{columns}
 \column{0.5\textwidth}
-\begin{block}{1D Poisson Equation}
-\begin{align}
--\frac{d^2u}{dx^2} &= f(x), \quad x \in [0, 1]\\
-u(0) &= 0, \quad u(1) = 0
-\end{align}
-\end{block}
+\textbf{Problem formulation:}
+\begin{equation}
+\begin{cases}
+-\nabla^2 u = f & \text{in } \Omega \\
+u = g & \text{on } \partial\Omega
+\end{cases}
+\end{equation}
 
-\textbf{Physical interpretation:}
-\begin{itemize}
-    \item Heat conduction in a rod
-    \item Deflection of a loaded beam
-    \item Electrostatic potential
-\end{itemize}
+\textbf{1D case:}
+$$-\frac{d^2u}{dx^2} = 2, \quad u(0) = u(1) = 0$$
+
+\textbf{Analytical solution:}
+$$u(x) = x(1-x)$$
 
 \column{0.5\textwidth}
-For $f(x) = \pi^2 \sin(\pi x)$:
-$$u(x) = \sin(\pi x)$$
-
 \begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/poisson-analytical-solution.png}
+\centering
+\includegraphics[width=\textwidth]{figs/poisson-analytical-solution.png}
+\caption{Analytical solution showing parabolic profile}
 \end{figure}
 \end{columns}
+
+\vspace{0.3cm}
+\textbf{Challenge:} Can we learn this solution from sparse, noisy measurements?
 \end{frame}
 
 \begin{frame}{The Function Approximation Challenge}
+\begin{figure}
+\centering
+\includegraphics[width=0.6\textwidth]{figs/sparse-data-challenge.png}
+\caption{Learning from sparse data: 5 noisy measurements to reconstruct continuous solution}
+\end{figure}
+
 \begin{columns}
 \column{0.5\textwidth}
-\textbf{The Challenge:}
+\textbf{Given:}
 \begin{itemize}
-    \item Given: 15 noisy measurements
-    \item Goal: Reconstruct continuous $u(x)$
-    \item Satisfy physics (PDE)
-    \item Compute accurate derivatives
+    \item Sparse measurements (e.g., 5 points)
+    \item Noisy observations
+    \item Unknown functional form
+    \item Potentially high dimensions
 \end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Goal:}
+\begin{itemize}
+    \item Reconstruct continuous solution
+    \item Quantify uncertainty
+    \item Generalize to new domains
+    \item Handle complex geometries
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Traditional Methods: Finite Differences}
+\begin{columns}
+\column{0.45\textwidth}
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{figs/finite-difference-methods.png}
+\caption{Finite difference discretization}
+\end{figure}
+
+\column{0.55\textwidth}
+\textbf{The approach:}
+\begin{itemize}
+    \item Discretize domain into grid
+    \item Approximate derivatives: \\
+    $\frac{d^2u}{dx^2} \approx \frac{u_{i+1} - 2u_i + u_{i-1}}{h^2}$
+    \item Solve linear system: $Au = b$
+\end{itemize}
+
+\textbf{Limitations:}
+\begin{itemize}
+    \item Fixed grid resolution
+    \item Curse of dimensionality ($O(N^d)$)
+    \item Poor for irregular domains
+    \item Cannot learn from data
+    \item No continuous representation
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Finite Difference Results}
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{figs/fd-poisson.png}
+\caption{Finite difference solution: accurate but discrete, requires mesh}
+\end{figure}
+
+\textbf{Key observation:} We need a flexible, continuous, learnable representation
+\end{frame}
+
+%========================================================================================
+% PART II: MATHEMATICAL FOUNDATIONS
+%========================================================================================
+\section{Part II: Mathematical Foundations}
+
+\begin{frame}{Historical Perspective: From Polynomials to Neural Networks}
+\begin{center}
+\begin{tikzpicture}[scale=0.8]
+    \node[draw, rectangle] (w) at (-2,0) {Weierstrass (1885)};
+    \node[draw, rectangle] (s) at (4,0) {Stone-Weierstrass (1937)};
+    \node[draw, rectangle] (k) at (10,0) {Kolmogorov (1957)};
+    \node[draw, rectangle] (c) at (2,-2) {Cybenko (1989)};
+    \node[draw, rectangle] (h) at (6,-2) {Hornik (1991)};
+    
+    \draw[->] (w) -- (s) node[midway,above] {generalize};
+    \draw[->] (s) -- (k) node[midway,above] {2-layer};
+    \draw[->] (s) -- (c) node[midway,right] {neural};
+    \draw[->] (c) -- (h) node[midway,below] {any activation};
+\end{tikzpicture}
+\end{center}
 
 \vspace{0.5cm}
-\textbf{Why is this hard?}
+
 \begin{itemize}
-    \item Sparse data
-    \item Noise in measurements
-    \item Need smooth interpolation
-    \item Must satisfy constraints
-\end{itemize}
-
-\column{0.5\textwidth}
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/sparse-data-challenge.png}
-    \caption{Learning from sparse, noisy data}
-\end{figure}
-\end{columns}
-\end{frame}
-
-%----------------------------------------------------------------------------------------
-% SECTION 3: Traditional Methods
-%----------------------------------------------------------------------------------------
-\section{Traditional Methods: Finite Difference}
-
-\begin{frame}{Finite Difference Method}
-\begin{columns}
-\column{0.5\textwidth}
-\textbf{Discretization:}
-\begin{itemize}
-    \item Grid points: $x_i = ih$
-    \item Grid spacing: $h = 1/(n+1)$
-    \item Unknown values: $u_i \approx u(x_i)$
-\end{itemize}
-
-\textbf{Derivative approximation:}
-$$\frac{d^2u}{dx^2}\bigg|_{x_i} \approx \frac{u_{i+1} - 2u_i + u_{i-1}}{h^2}$$
-
-\textbf{Linear system:}
-$$\mathbf{A}\mathbf{u} = \mathbf{f}$$
-
-\column{0.5\textwidth}
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/finite-difference-methods.png}
-\end{figure}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Finite Difference Solutions}
-\begin{figure}
-    \centering
-    \includegraphics[width=0.8\textwidth]{figs/fd-poisson.png}
-\end{figure}
-
-\textbf{Key Limitations:}
-\begin{itemize}
-    \item Solution only at grid points
-    \item Accuracy depends on grid resolution
-    \item Not differentiable between points
-    \item Curse of dimensionality in higher dimensions
+    \item \textbf{Weierstrass (1885):} Polynomials can approximate continuous functions
+    \item \textbf{Stone-Weierstrass (1937):} Generalization to abstract spaces
+    \item \textbf{Kolmogorov (1957):} 2-layer networks suffice
+    \item \textbf{Cybenko (1989):} Sigmoid networks are universal
+    \item \textbf{Hornik (1991):} Any non-polynomial activation works
 \end{itemize}
 \end{frame}
 
-%----------------------------------------------------------------------------------------
-% SECTION 4: From Polynomials to Neural Networks
-%----------------------------------------------------------------------------------------
-\section{From Polynomials to Neural Networks: The Weierstrass Path}
-
-\begin{frame}{The Weierstrass Approximation Theorem (1885)}
-\begin{block}{Theorem}
-For any continuous function $f: [a,b] \to \mathbb{R}$ and any $\epsilon > 0$, there exists a polynomial $P$ such that:
-$$\sup_{x \in [a,b]} |f(x) - P(x)| < \epsilon$$
+\begin{frame}{The Weierstrass Approximation Theorem}
+\begin{block}{Theorem (Weierstrass, 1885)}
+For any continuous function $f: [a,b] \to \mathbb{R}$ and any $\epsilon > 0$, there exists a polynomial $P(x)$ such that:
+$$|f(x) - P(x)| < \epsilon \quad \forall x \in [a,b]$$
 \end{block}
 
 \vspace{0.5cm}
-\textbf{Key insight:} Simple building blocks (monomials) can approximate arbitrarily complex continuous functions.
 
-\vspace{0.5cm}
-\textbf{Historical progression:}
+\textbf{Interpretation:}
 \begin{itemize}
-    \item 1885: Weierstrass - Polynomials are universal
-    \item 1937: Stone-Weierstrass - Generalization
-    \item 1989: Cybenko - Neural networks are universal
-    \item 1991: Hornik - General activation functions
+    \item Continuous functions can be uniformly approximated by polynomials
+    \item Approximation quality improves with polynomial degree
+    \item Foundation for all approximation theory
 \end{itemize}
+
+\textbf{Constructive proof:} Bernstein polynomials
+$$B_n[f](x) = \sum_{k=0}^{n} f\left(\frac{k}{n}\right) \binom{n}{k} x^k (1-x)^{n-k}$$
 \end{frame}
 
-\begin{frame}{Why This Matters for Neural Networks}
+\begin{frame}{Polynomial Approximation in Action}
 \begin{columns}
-\column{0.5\textwidth}
-\textbf{Polynomials:}
-\begin{itemize}
-    \item Building blocks: $1, x, x^2, x^3, ...$
-    \item Linear combination: $\sum a_n x^n$
-    \item Global support
-    \item Fixed basis
-\end{itemize}
-
-\vspace{0.5cm}
-\textbf{Neural Networks:}
-\begin{itemize}
-    \item Building blocks: $\sigma(wx + b)$
-    \item Linear combination: $\sum \alpha_i \sigma(w_i x + b_i)$
-    \item Local support (ReLU)
-    \item Adaptive basis
-\end{itemize}
-
-\column{0.5\textwidth}
+\column{0.65\textwidth}
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{figs/polynomial-approximation-sinpi.png}
-    \caption{Polynomial approximation}
+    \caption{Polynomial approximation of $\sin(\pi x)$ with increasing degrees}
 \end{figure}
+\column{0.35\textwidth}
+\textbf{Convergence:}
+\begin{itemize}
+    \item Degree 3: captures trend
+    \item Degree 5: better fit
+    \item Degree 7: good accuracy
+    \item Degree 9: excellent
+\end{itemize}
+
+\textbf{But:}
+\begin{itemize}
+    \item Runge phenomenon
+    \item Global basis functions
+    \item Poor for discontinuities
+\end{itemize}
 \end{columns}
 \end{frame}
-
 
 \begin{frame}{Bernstein Polynomials: Constructive Proof}
 \begin{columns}
@@ -289,8 +300,9 @@ $$B_n[f](x) = \sum_{k=0}^{n} f\left(\frac{k}{n}\right) B_{k,n}(x)$$
 
 \textbf{Properties:}
 \begin{itemize}
-    \item Partition of unity
     \item Non-negative
+    \item Partition of unity
+    \item Local control
     \item Uniform convergence
 \end{itemize}
 
@@ -303,22 +315,23 @@ $$B_n[f](x) = \sum_{k=0}^{n} f\left(\frac{k}{n}\right) B_{k,n}(x)$$
 \end{columns}
 \end{frame}
 
-
 \begin{frame}{Convergence Analysis}
-	\begin{columns}
-		\column{0.35\textwidth}
-		
-		\textbf{Convergence rate:}
-		For $f \in C^n[0,1]$:
-		$$\|f - P_n\|_\infty = O(1/\sqrt{n})$$
-		
-		\column{0.65\textwidth}
-		\begin{figure}
-			\centering
-			\includegraphics[width=\textwidth]{figs/polynomial-convergence.png}
-			\caption{Exponential convergence for smooth functions}
-		\end{figure}
-	\end{columns}
+\begin{columns}
+\column{0.35\textwidth}
+\textbf{Convergence rate:}
+For $f \in C^n[0,1]$:
+$$\|f - P_n\|_\infty = O(1/\sqrt{n})$$
+
+\textbf{Smooth functions:}
+Exponential convergence for analytic functions
+
+\column{0.65\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{figs/polynomial-convergence.png}
+    \caption{Exponential convergence for smooth functions}
+\end{figure}
+\end{columns}
 \end{frame}
 
 \begin{frame}{Polynomial vs Neural Network Comparison}
@@ -332,260 +345,307 @@ $$B_n[f](x) = \sum_{k=0}^{n} f\left(\frac{k}{n}\right) B_{k,n}(x)$$
 \column{0.5\textwidth}
 \textbf{Polynomials:}
 \begin{itemize}
-    \item Global oscillations (Runge)
-    \item Numerical instability
-    \item Poor extrapolation
+    \item Global basis functions
+    \item Fixed structure
+    \item Runge phenomenon
+    \item Poor for high dimensions
 \end{itemize}
 
 \column{0.5\textwidth}
 \textbf{Neural Networks:}
 \begin{itemize}
-    \item Local adaptivity
-    \item Numerical stability
-    \item Better generalization
+    \item Local basis functions
+    \item Adaptive placement
+    \item Compositional structure
+    \item Dimension-friendly
 \end{itemize}
 \end{columns}
 \end{frame}
 
-\begin{frame}{Limitations of Polynomial Approximation}
+\begin{frame}{High-Frequency Functions: A Challenge}
 \begin{columns}
-\column{0.5\textwidth}
-\textbf{Runge's Phenomenon:}
-\begin{itemize}
-    \item Oscillations near boundaries
-    \item Worse with equispaced points
-    \item Amplified with degree
-\end{itemize}
-
-\textbf{Computational issues:}
-\begin{itemize}
-    \item Condition number $\sim 2^n$
-    \item Global support
-    \item No adaptivity
-\end{itemize}
-
-\column{0.5\textwidth}
+\column{0.65\textwidth}
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{figs/high-freq-comparison.png}
     \caption{High-frequency function challenges}
 \end{figure}
+\column{0.35\textwidth}
+\textbf{Problem:}
+Approximating $\sin(100x)$
+
+\textbf{Polynomials:}
+\begin{itemize}
+    \item Need degree $\sim 100$
+    \item Numerical instability
+    \item Runge phenomenon
+\end{itemize}
+
+\textbf{Neural Networks:}
+\begin{itemize}
+    \item Adaptive placement
+    \item Local features
+    \item Compositional
+\end{itemize}
 \end{columns}
 \end{frame}
 
-\begin{frame}{From Weierstrass to Universal Approximation}
-\begin{center}
-\begin{tikzpicture}[scale=0.8]
-    \node[draw, rectangle] (w) at (-2,0) {Weierstrass (1885)};
-    \node[draw, rectangle] (s) at (4,0) {Stone-Weierstrass (1937)};
-    \node[draw, rectangle] (k) at (10,0) {Kolmogorov (1957)};
-    \node[draw, rectangle] (c) at (2,-2) {Cybenko (1989)};
-    \node[draw, rectangle] (h) at (6,-2) {Hornik (1991)};
-    
-    \draw[->] (w) -- (s);
-    \draw[->] (s) -- (k);
-    \draw[->] (s) -- (c);
-    \draw[->] (c) -- (h);
-\end{tikzpicture}
-\end{center}
-
-\textbf{Evolution of approximation theory:}
-\begin{itemize}
-    \item Polynomials $\rightarrow$ General function algebras
-    \item Single variable $\rightarrow$ Multiple variables
-    \item Fixed basis $\rightarrow$ Adaptive basis
-    \item Theoretical $\rightarrow$ Practical algorithms
-\end{itemize}
-\end{frame}
-
-%----------------------------------------------------------------------------------------
-% SECTION 5: The Neural Network Approach
-%----------------------------------------------------------------------------------------
-\section{The Neural Network Approach: Function Approximation}
-
-\begin{frame}{Traditional vs Neural Network: Discrete vs Continuous}
-\begin{columns}
-\column{0.5\textwidth}
-\textbf{Traditional (FD/FEM):}
-\begin{itemize}
-    \item Discretize domain
-    \item Solve at grid points
-    \item Interpolate between
-    \item Result: Discrete values
-\end{itemize}
-
-$$u_h = \sum_{i} u_i \phi_i(x)$$
-
-\column{0.5\textwidth}
-\textbf{Neural Network:}
-\begin{itemize}
-    \item Continuous representation
-    \item Defined everywhere
-    \item Differentiable
-    \item Result: Function
-\end{itemize}
-
-$$u_{NN}(x) = \sum_{i} \alpha_i \sigma(w_i x + b_i)$$
-\end{columns}
+\begin{frame}{Universal Approximation Theorem}
+\begin{block}{Theorem (Cybenko, 1989)}
+Let $\sigma$ be a continuous, bounded, non-constant, monotonically increasing function. 
+Then finite sums of the form:
+$$G(x) = \sum_{i=1}^{N} \alpha_i \sigma(w_i^T x + b_i)$$
+are dense in $C([0,1]^n)$ under the supremum norm.
+\end{block}
 
 \vspace{0.5cm}
-\begin{block}{Key Advantage}
-Neural networks provide a continuous, differentiable function that can be evaluated and differentiated anywhere in the domain.
-\end{block}
+
+\textbf{In plain English:}
+A single hidden layer neural network can approximate any continuous function to arbitrary accuracy, given enough neurons.
+
+\vspace{0.3cm}
+
+\textbf{Key points:}
+\begin{itemize}
+    \item Existence guarantee, not constructive
+    \item Says nothing about number of neurons needed
+    \item Doesn't tell us how to find the weights
+\end{itemize}
 \end{frame}
 
-%----------------------------------------------------------------------------------------
-% SECTION 6: The Perceptron
-%----------------------------------------------------------------------------------------
-\section{The Perceptron: Building Block of Neural Networks}
+\begin{frame}{UAT Visualization}
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{figs/uat-approximation-progression.png}
+\caption{Neural network approximation with increasing width: 2, 10, and 50 neurons}
+\end{figure}
 
-\begin{frame}{The Perceptron Model}
+\textbf{Observations:}
+\begin{itemize}
+    \item More neurons → better approximation
+    \item Each neuron adds a "bump" or feature
+    \item Adaptive placement of features
+    \item No fixed polynomial structure
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Function Spaces: The Mathematical Setting}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Banach Spaces:}
+\begin{itemize}
+    \item Complete normed vector spaces
+    \item $C([0,1])$ with $\|f\|_\infty = \max_x |f(x)|$
+    \item $L^p([0,1])$ with $\|f\|_p = \left(\int |f|^p\right)^{1/p}$
+\end{itemize}
+
+\textbf{Hilbert Spaces:}
+\begin{itemize}
+    \item Inner product spaces
+    \item $L^2([0,1])$ with $\langle f,g \rangle = \int fg$
+    \item Orthogonal projections
+    \item Energy minimization
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Density Results:}
+
+A set $S$ is \textit{dense} in $X$ if:
+$$\forall f \in X, \forall \epsilon > 0, \exists g \in S: \|f - g\| < \epsilon$$
+
+\vspace{0.5cm}
+
+Neural networks are dense in:
+\begin{itemize}
+    \item $C([0,1])$ - continuous functions
+    \item $L^p([0,1])$ - integrable functions
+    \item $H^1([0,1])$ - Sobolev spaces
+\end{itemize}
+
+\textbf{Implication:} Can approximate solutions to PDEs!
+\end{columns}
+\end{frame}
+
+\begin{frame}{The Continuity Requirement}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{What UAT guarantees:}
+\begin{itemize}
+    \item Continuous functions \checkmark
+    \item Smooth functions \checkmark
+    \item Piecewise continuous \checkmark (away from jumps)
+\end{itemize}
+
+\textbf{What UAT doesn't guarantee:}
+\begin{itemize}
+    \item Discontinuous functions $\times$
+    \item Delta functions $\times$
+    \item Step functions $\times$ (pointwise)
+\end{itemize}
+
+\column{0.5\textwidth}
+\begin{figure}
+\centering
+% \includegraphics[width=\textwidth]{figs/discontinuous-challenge.png}
+\includegraphics[width=\textwidth]{figs/linear-network-failure.png}
+\caption{Neural networks approximate discontinuities in $L^2$, not pointwise}
+\end{figure}
+\end{columns}
+
+\vspace{0.3cm}
+
+\textbf{Practical implications:}
+\begin{itemize}
+    \item Shocks in fluid dynamics: approximate in weak sense
+    \item Material interfaces: use phase field methods
+    \item Classification boundaries: sigmoid approximation
+\end{itemize}
+\end{frame}
+
+%========================================================================================
+% PART III: BUILDING NEURAL NETWORKS
+%========================================================================================
+\section{Part III: Building Neural Networks}
+
+\begin{frame}{The Perceptron: Building Block of Neural Networks}
 \begin{columns}
 \column{0.5\textwidth}
 \textbf{Mathematical model:}
-$$y = \sigma(\mathbf{w}^T\mathbf{x} + b)$$
+\begin{equation}
+\hat{y} = \sigma(\mathbf{w}^T\mathbf{x} + b)
+\end{equation}
 
-\textbf{Components:}
+where:
 \begin{itemize}
-    \item Input: $\mathbf{x} \in \mathbb{R}^n$
-    \item Weights: $\mathbf{w} \in \mathbb{R}^n$
-    \item Bias: $b \in \mathbb{R}$
-    \item Activation: $\sigma(\cdot)$
-    \item Output: $y \in \mathbb{R}$
+    \item $\mathbf{x} \in \mathbb{R}^n$: input features
+    \item $\mathbf{w} \in \mathbb{R}^n$: weights
+    \item $b \in \mathbb{R}$: bias
+    \item $\sigma(\cdot)$: activation function
+    \item $\hat{y}$: output/prediction
 \end{itemize}
 
 \textbf{Geometric interpretation:}
-Hyperplane $\mathbf{w}^T\mathbf{x} + b = 0$
+\begin{itemize}
+    \item Linear decision boundary
+    \item Hyperplane: $\mathbf{w}^T\mathbf{x} + b = 0$
+    \item Normal vector: $\mathbf{w}$
+    \item Distance from origin: $|b|/\|\mathbf{w}\|$
+\end{itemize}
 
 \column{0.5\textwidth}
 \begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/perceptron.png}
+\centering
+\includegraphics[width=\textwidth]{figs/perceptron.png}
+\caption{Perceptron model: linear combination followed by activation}
 \end{figure}
 \end{columns}
 \end{frame}
 
-\begin{frame}[fragile]{Linear Perceptron in NumPy}
-\begin{columns}
-\column{0.55\textwidth}
-\begin{lstlisting}
+\begin{frame}[fragile]{Linear Perceptron Implementation}
+\begin{lstlisting}[language=Python]
 import numpy as np
 
 class LinearPerceptron:
-    def __init__(self, n_features):
+    def __init__(self, input_dim):
         # Initialize weights randomly
-        self.w = np.random.randn(n_features)
-        self.b = np.random.randn()
+        self.w = np.random.randn(input_dim) * 0.01
+        self.b = np.random.randn() * 0.01
     
-    def forward(self, X):
-        """Compute output"""
-        return np.dot(X, self.w) + self.b
+    def forward(self, x):
+        """Compute output for input x"""
+        return np.dot(x, self.w) + self.b
     
-    def predict(self, X):
-        """Make predictions"""
-        return self.forward(X)
-
-# Example usage
-perceptron = LinearPerceptron(2)
-X = np.array([[1, 2], [3, 4]])
-y_pred = perceptron.predict(X)
-print(f"Predictions: {y_pred}")
-\end{lstlisting}
-
-\column{0.45\textwidth}
-\textbf{Pure linear model:}
-$$\hat{y} = \mathbf{w}^T\mathbf{x} + b$$
-
-\textbf{Limitations:}
-\begin{itemize}
-    \item Only linear boundaries
-    \item Cannot learn XOR
-    \item Limited expressiveness
-\end{itemize}
-
-\textbf{Solution:}
-Add nonlinear activation!
-\end{columns}
-\end{frame}
-
-\begin{frame}[fragile]{Training: Gradient Descent from Scratch}
-\begin{lstlisting}
-def train_perceptron(X, y, epochs=1000, lr=0.01):
-    n_samples, n_features = X.shape
-    w = np.random.randn(n_features)
-    b = np.random.randn()
+    def sigmoid(self, z):
+        """Sigmoid activation function"""
+        return 1 / (1 + np.exp(-z))
     
-    for epoch in range(epochs):
-        # Forward pass
-        z = np.dot(X, w) + b
-        y_pred = sigmoid(z)
-        
-        # Compute loss
-        loss = 0.5 * np.mean((y - y_pred)**2)
-        
-        # Backward pass (compute gradients)
-        error = y_pred - y
-        dz = error * sigmoid_derivative(z)
-        dw = np.dot(X.T, dz) / n_samples
-        db = np.mean(dz)
-        
-        # Update parameters
-        w -= lr * dw
-        b -= lr * db
-        
-        if epoch % 100 == 0:
-            print(f"Epoch {epoch}, Loss: {loss:.4f}")
+    def predict(self, x):
+        """Make binary prediction"""
+        z = self.forward(x)
+        return self.sigmoid(z) > 0.5
     
-    return w, b
+    def train(self, X, y, lr=0.01, epochs=100):
+        """Train using gradient descent"""
+        for epoch in range(epochs):
+            # Forward pass
+            z = self.forward(X)
+            y_pred = self.sigmoid(z)
+            
+            # Compute loss (binary cross-entropy)
+            loss = -np.mean(y * np.log(y_pred + 1e-8) + 
+                           (1-y) * np.log(1-y_pred + 1e-8))
+            
+            # Backward pass (gradient computation)
+            dz = y_pred - y
+            dw = X.T @ dz / len(y)
+            db = np.mean(dz)
+            
+            # Update parameters
+            self.w -= lr * dw
+            self.b -= lr * db
+            
+            if epoch % 10 == 0:
+                print(f"Epoch {epoch}, Loss: {loss:.4f}")
 \end{lstlisting}
 \end{frame}
 
-\begin{frame}{Gradient Computation Details}
-\textbf{Loss function:}
-$$L = \frac{1}{2}(y - \hat{y})^2$$
-
-\textbf{Chain rule for gradient:}
-$$\frac{\partial L}{\partial w_i} = \frac{\partial L}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial z} \cdot \frac{\partial z}{\partial w_i}$$
-
-\textbf{Component derivatives:}
-\begin{align}
-\frac{\partial L}{\partial \hat{y}} &= -(y - \hat{y}) \\
-\frac{\partial \hat{y}}{\partial z} &= \sigma'(z) \\
-\frac{\partial z}{\partial w_i} &= x_i
-\end{align}
-
-\textbf{Final gradient:}
-$$\frac{\partial L}{\partial w_i} = -(y - \hat{y}) \cdot \sigma'(z) \cdot x_i$$
-\end{frame}
-
-\begin{frame}{Example: Linear Classification}
+\begin{frame}{Training a Linear Model}
 \begin{columns}
 \column{0.5\textwidth}
-\textbf{Linearly separable data:}
+\textbf{Gradient Descent:}
+\begin{align}
+\mathcal{L} &= \frac{1}{2}\sum_{i=1}^{n} (y_i - \hat{y}_i)^2 \\
+\frac{\partial \mathcal{L}}{\partial w_j} &= -\sum_{i=1}^{n} (y_i - \hat{y}_i) x_{ij} \\
+w_j &\leftarrow w_j - \eta \frac{\partial \mathcal{L}}{\partial w_j}
+\end{align}
+
+\textbf{Learning process:}
 \begin{itemize}
-    \item Two classes
-    \item Can be separated by a line
-    \item Perceptron converges
+    \item Start with random weights
+    \item Compute predictions
+    \item Calculate error
+    \item Update weights in direction of negative gradient
+    \item Repeat until convergence
 \end{itemize}
-
-\textbf{Decision boundary:}
-$$w_1 x_1 + w_2 x_2 + b = 0$$
-
-\textbf{Classification rule:}
-$$\text{class} = \begin{cases}
-1 & \text{if } \sigma(z) > 0.5 \\
-0 & \text{otherwise}
-\end{cases}$$
 
 \column{0.5\textwidth}
 \begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/linear-network-failure.png}
+\centering
+\includegraphics[width=\textwidth]{figs/sgd.png}
+\caption{Gradient descent trajectory in weight space}
 \end{figure}
 \end{columns}
 \end{frame}
 
-\begin{frame}{Limitation: The XOR Problem}
+\begin{frame}{Linear Models Work for Linearly Separable Data}
+\begin{figure}
+\centering
+% Linear separable figure not available
+\includegraphics[width=0.8\textwidth]{figs/perceptron.png}
+\caption{Linear perceptron successfully classifies linearly separable data}
+\end{figure}
+
+\textbf{Success cases:}
+\begin{itemize}
+    \item AND gate
+    \item OR gate
+    \item Simple classification problems
+    \item Linear regression
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The Critical Limitation: Linear Models Fail}
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{figs/linear-network-failure.png}
+\caption{Linear models cannot approximate nonlinear functions like $\sin(\pi x)$}
+\end{figure}
+
+\textbf{Fundamental problem:} Composition of linear functions is still linear!
+$$f(x) = W_3(W_2(W_1 x)) = (W_3 W_2 W_1) x = W x$$
+\end{frame}
+
+\begin{frame}{The XOR Problem: Historical Crisis}
 \begin{columns}
 \column{0.5\textwidth}
 \textbf{XOR Truth Table:}
@@ -600,1257 +660,1022 @@ $x_1$ & $x_2$ & XOR \\
 \end{tabular}
 \end{center}
 
+\vspace{0.5cm}
+
 \textbf{The problem:}
 \begin{itemize}
-    \item Not linearly separable
-    \item No single line works
-    \item Perceptron fails
+    \item No single line can separate the classes
+    \item Points (0,1) and (1,0): class 1
+    \item Points (0,0) and (1,1): class 0
+    \item Diagonally opposite points same class
 \end{itemize}
 
 \column{0.5\textwidth}
 \begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/xor-problem.png}
+\centering
+\includegraphics[width=\textwidth]{figs/xor-problem.png}
+\caption{XOR problem: not linearly separable}
+\end{figure}
+\end{columns}
+
+\vspace{0.3cm}
+\textbf{Historical impact:} Minsky \& Papert (1969) → First AI Winter
+\end{frame}
+
+\begin{frame}[fragile]{XOR Implementation: Failure of Linear Model}
+\begin{lstlisting}[language=Python]
+import numpy as np
+import matplotlib.pyplot as plt
+
+# XOR dataset
+X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+y = np.array([0, 1, 1, 0])
+
+# Train linear perceptron
+perceptron = LinearPerceptron(input_dim=2)
+perceptron.train(X, y, lr=0.1, epochs=1000)
+
+# Results after training:
+# The linear model achieves at best 50% accuracy
+# It can only correctly classify 2 out of 4 points
+
+# Visualization shows no linear boundary exists
+# that can separate XOR classes
+\end{lstlisting}
+
+\textbf{Result:} Linear model fails completely on XOR
+\begin{itemize}
+    \item Best accuracy: 50\% (random guessing!)
+    \item Cannot learn the pattern
+    \item Need nonlinearity
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The Solution: Activation Functions}
+\begin{figure}
+\centering
+\includegraphics[width=0.9\textwidth]{figs/activation-functions.png}
+\caption{Common activation functions and their derivatives}
+\end{figure}
+
+\textbf{Why activation functions are essential:}
+\begin{itemize}
+    \item Break linearity: $\sigma(W_2 \sigma(W_1 x)) \neq \sigma((W_2 W_1) x)$
+    \item Enable composition of features
+    \item Create decision boundaries of arbitrary complexity
+    \item Universal approximation requires nonlinearity
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Why Nonlinearity Matters}
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{figs/why-activation.png}
+\caption{Without activation functions, deep networks collapse to linear models}
+\end{figure}
+
+\textbf{Mathematical proof:}
+\begin{align}
+\text{Without } \sigma: \quad & h_1 = W_1 x + b_1 \\
+& h_2 = W_2 h_1 + b_2 = W_2(W_1 x + b_1) + b_2 \\
+& = (W_2 W_1) x + (W_2 b_1 + b_2) = W x + b
+\end{align}
+
+Still just a linear transformation!
+\end{frame}
+
+\begin{frame}{Multi-Layer Networks: Solving XOR}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Architecture:}
+\begin{itemize}
+    \item Input layer: 2 neurons ($x_1, x_2$)
+    \item Hidden layer: 2 neurons
+    \item Output layer: 1 neuron
+    \item Activation: Sigmoid/ReLU
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{How it works:}
+\begin{itemize}
+    \item Hidden neuron 1: $(x_1 \text{ OR } x_2)$
+    \item Hidden neuron 2: $(x_1 \text{ AND } x_2)$
+    \item Output: $h_1 \text{ AND NOT } h_2$
+\end{itemize}
+
+\column{0.5\textwidth}
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{figs/single-layer-nn1.png}
+\caption{Two-layer network architecture for XOR}
 \end{figure}
 \end{columns}
 \end{frame}
 
-\begin{frame}{Mathematical Proof: XOR Impossibility}
-\textbf{Assume linear separator exists:} $w_1 x_1 + w_2 x_2 + b = 0$
+\begin{frame}{XOR Solution: Decision Boundaries}
+\begin{figure}
+\centering
+\includegraphics[width=0.9\textwidth]{figs/xor-decision-boundaries.png}
+\caption{Hidden layer creates linearly separable feature space}
+\end{figure}
 
-\textbf{Requirements from XOR:}
-\begin{align}
-(0,0): & \quad b < 0 \quad \text{(class 0)} \\
-(0,1): & \quad w_2 + b > 0 \quad \text{(class 1)} \\
-(1,0): & \quad w_1 + b > 0 \quad \text{(class 1)} \\
-(1,1): & \quad w_1 + w_2 + b < 0 \quad \text{(class 0)}
-\end{align}
-
-\textbf{Contradiction:}
+\textbf{Key insight:} Hidden layer transforms the input space!
 \begin{itemize}
-    \item From (1): $b < 0$
-    \item From (2) and (3): $w_1, w_2 > -b > 0$
-    \item Adding (2) and (3): $w_1 + w_2 + 2b > 0$
-    \item But (4) requires: $w_1 + w_2 + b < 0$
-    \item Subtracting: $b > 0$ contradicts $b < 0$
+    \item Original space: Not linearly separable
+    \item Hidden space: Linearly separable
+    \item Each hidden neuron creates a decision boundary
+    \item Output combines these boundaries
 \end{itemize}
-
-$\Rightarrow$ No linear solution exists!
 \end{frame}
 
-\begin{frame}[fragile]{Solution: Adding Nonlinear Activation}
-\begin{columns}
-\column{0.55\textwidth}
-\begin{lstlisting}
-class NonlinearPerceptron:
-    def __init__(self, n_features):
-        self.w = np.random.randn(n_features)
-        self.b = np.random.randn()
+\begin{frame}[fragile]{XOR Solution: Implementation}
+\begin{lstlisting}[language=Python]
+class TwoLayerNetwork:
+    def __init__(self, input_dim, hidden_dim, output_dim):
+        # Initialize weights
+        self.W1 = np.random.randn(input_dim, hidden_dim) * 0.5
+        self.b1 = np.zeros(hidden_dim)
+        self.W2 = np.random.randn(hidden_dim, output_dim) * 0.5
+        self.b2 = np.zeros(output_dim)
     
     def sigmoid(self, z):
         return 1 / (1 + np.exp(-z))
     
-    def sigmoid_derivative(self, z):
-        s = self.sigmoid(z)
-        return s * (1 - s)
-    
     def forward(self, X):
-        z = np.dot(X, self.w) + self.b
-        return self.sigmoid(z)
-    
-    def compute_gradients(self, X, y):
-        z = np.dot(X, self.w) + self.b
-        y_pred = self.sigmoid(z)
+        # Hidden layer
+        self.z1 = X @ self.W1 + self.b1
+        self.a1 = self.sigmoid(self.z1)
         
-        error = y_pred - y
-        dz = error * self.sigmoid_derivative(z)
-        dw = np.dot(X.T, dz) / len(X)
-        db = np.mean(dz)
+        # Output layer
+        self.z2 = self.a1 @ self.W2 + self.b2
+        self.a2 = self.sigmoid(self.z2)
         
-        return dw, db
-\end{lstlisting}
-
-\column{0.45\textwidth}
-\textbf{Key addition:}
-Sigmoid activation
-$$\sigma(z) = \frac{1}{1 + e^{-z}}$$
-
-\textbf{Properties:}
-\begin{itemize}
-    \item Smooth, differentiable
-    \item Bounded: $(0, 1)$
-    \item Gradient: $\sigma'(z) = \sigma(z)(1-\sigma(z))$
-\end{itemize}
-
-But still can't solve XOR with single neuron!
-\end{columns}
-\end{frame}
-
-%----------------------------------------------------------------------------------------
-% SECTION 7: Backpropagation
-%----------------------------------------------------------------------------------------
-\section{Backpropagation with Activation Functions}
-
-\begin{frame}{Backpropagation Algorithm}
-\begin{columns}
-\column{0.5\textwidth}
-\textbf{Forward Pass:}
-\begin{enumerate}
-    \item Compute activations layer by layer
-    \item Store intermediate values
-    \item Calculate loss
-\end{enumerate}
-
-\textbf{Backward Pass:}
-\begin{enumerate}
-    \item Start from output error
-    \item Propagate error backward
-    \item Compute gradients via chain rule
-    \item Update weights
-\end{enumerate}
-
-\column{0.5\textwidth}
-\begin{algorithmic}
-\STATE \textbf{Forward:}
-\FOR{layer $l = 1$ to $L$}
-    \STATE $z^{(l)} = W^{(l)}a^{(l-1)} + b^{(l)}$
-    \STATE $a^{(l)} = \sigma(z^{(l)})$
-\ENDFOR
-\STATE
-\STATE \textbf{Backward:}
-\STATE $\delta^{(L)} = \nabla_a L \odot \sigma'(z^{(L)})$
-\FOR{layer $l = L-1$ to $1$}
-    \STATE $\delta^{(l)} = (W^{(l+1)})^T\delta^{(l+1)} \odot \sigma'(z^{(l)})$
-\ENDFOR
-\end{algorithmic}
-\end{columns}
-\end{frame}
-
-\begin{frame}[fragile]{Backpropagation Implementation}
-\begin{lstlisting}
-def backpropagation(network, X, y):
-    # Forward pass
-    activations = [X]
-    z_values = []
+        return self.a2
     
-    for layer in network.layers:
-        z = np.dot(activations[-1], layer.W) + layer.b
-        z_values.append(z)
-        a = layer.activation(z)
-        activations.append(a)
-    
-    # Compute loss
-    loss = 0.5 * np.mean((activations[-1] - y)**2)
-    
-    # Backward pass
-    delta = (activations[-1] - y) * layer.activation_derivative(z_values[-1])
-    gradients = []
-    
-    for i in reversed(range(len(network.layers))):
-        # Gradient w.r.t weights and bias
-        grad_W = np.dot(activations[i].T, delta) / len(X)
-        grad_b = np.mean(delta, axis=0)
-        gradients.append((grad_W, grad_b))
+    def backward(self, X, y, lr=0.1):
+        m = len(y)
         
-        # Propagate error backward
-        if i > 0:
-            delta = np.dot(delta, network.layers[i].W.T)
-            delta *= network.layers[i-1].activation_derivative(z_values[i-1])
-    
-    return loss, list(reversed(gradients))
+        # Output layer gradients
+        dz2 = self.a2 - y.reshape(-1, 1)
+        dW2 = self.a1.T @ dz2 / m
+        db2 = np.sum(dz2, axis=0) / m
+        
+        # Hidden layer gradients
+        da1 = dz2 @ self.W2.T
+        dz1 = da1 * self.a1 * (1 - self.a1)  # sigmoid derivative
+        dW1 = X.T @ dz1 / m
+        db1 = np.sum(dz1, axis=0) / m
+        
+        # Update weights
+        self.W2 -= lr * dW2
+        self.b2 -= lr * db2
+        self.W1 -= lr * dW1
+        self.b1 -= lr * db1
 \end{lstlisting}
 \end{frame}
 
-%----------------------------------------------------------------------------------------
-% SECTION 8: The Critical Role of Nonlinearity
-%----------------------------------------------------------------------------------------
-\section{The Role of Nonlinearity}
+\begin{frame}{Single Hidden Layer Networks}
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{figs/single-layer-nn1.png}
+\caption{Single hidden layer network with multiple neurons}
+\end{figure}
 
-\begin{frame}{Why Nonlinearity is Essential}
-\begin{columns}
-\column{0.5\textwidth}
-\textbf{Without activation:}
+\textbf{Architecture:}
 \begin{align}
-h^{(2)} &= W^{(2)}h^{(1)} + b^{(2)} \\
-&= W^{(2)}(W^{(1)}x + b^{(1)}) + b^{(2)} \\
-&= W^{(2)}W^{(1)}x + W^{(2)}b^{(1)} + b^{(2)} \\
-&= W_{eff}x + b_{eff}
+h_i &= \sigma(w_i^T x + b_i) \quad i = 1, \ldots, M \\
+y &= \sum_{i=1}^{M} v_i h_i + c
 \end{align}
 
-Still linear! Multiple layers collapse.
+\textbf{Capabilities:}
+\begin{itemize}
+    \item Universal approximation with enough neurons
+    \item Each neuron adds a "feature" or "basis function"
+    \item Output is weighted combination of features
+\end{itemize}
+\end{frame}
 
-\column{0.5\textwidth}
-\textbf{With activation:}
-$$h^{(2)} = \sigma(W^{(2)}\sigma(W^{(1)}x + b^{(1)}) + b^{(2)})$$
-
-Truly nonlinear transformation!
-
+\begin{frame}{Multi-Output Networks}
 \begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/why-activation.png}
+\centering
+\includegraphics[width=0.8\textwidth]{figs/multioutput-perceptrons.png}
+\caption{Networks can have multiple outputs for multi-task learning}
 \end{figure}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Activation Functions Enable Complex Boundaries}
-\begin{figure}
-    \centering
-    \includegraphics[width=0.9\textwidth]{figs/xor-decision-boundaries.png}
-\end{figure}
-
-\textbf{Key insight:} Nonlinear activations allow networks to:
-\begin{itemize}
-    \item Create curved decision boundaries
-    \item Learn complex patterns
-    \item Compose simple functions into complex ones
-    \item Approximate any continuous function (UAT)
-\end{itemize}
-\end{frame}
-
-%----------------------------------------------------------------------------------------
-\begin{frame}{Common Activation Functions}
-\begin{figure}
-    \centering
-    \includegraphics[width=0.9\textwidth]{figs/activation-functions.png}
-\end{figure}
-
-\begin{center}
-\small
-\begin{tabular}{lll}
-\toprule
-Function & Formula & Properties \\
-\midrule
-Sigmoid & $\sigma(x) = \frac{1}{1 + e^{-x}}$ & Smooth, $(0,1)$, vanishing gradient \\
-Tanh & $\tanh(x) = \frac{e^x - e^{-x}}{e^x + e^{-x}}$ & Zero-centered, $(-1,1)$ \\
-ReLU & $\max(0, x)$ & Simple, efficient, no saturation \\
-Leaky ReLU & $\max(0.01x, x)$ & Avoids dead neurons \\
-\bottomrule
-\end{tabular}
-\end{center}
-\end{frame}
-
-\begin{frame}{Activation Function Properties}
-\begin{columns}
-\column{0.5\textwidth}
-\textbf{Sigmoid:}
-\begin{itemize}
-    \item Range: $(0, 1)$
-    \item Derivative: $\sigma'(x) = \sigma(x)(1-\sigma(x))$
-    \item Max gradient: 0.25
-    \item Issue: Vanishing gradient
-\end{itemize}
-
-\textbf{Tanh:}
-\begin{itemize}
-    \item Range: $(-1, 1)$
-    \item Derivative: $\tanh'(x) = 1 - \tanh^2(x)$
-    \item Max gradient: 1
-    \item Better than sigmoid
-\end{itemize}
-
-\column{0.5\textwidth}
-\textbf{ReLU:}
-\begin{itemize}
-    \item Range: $[0, \infty)$
-    \item Derivative: $\begin{cases} 1 & x > 0 \\ 0 & x \leq 0 \end{cases}$
-    \item No vanishing gradient
-    \item Issue: Dead neurons
-\end{itemize}
-
-\textbf{Modern variants:}
-\begin{itemize}
-    \item Swish: $x \cdot \sigma(x)$
-    \item GELU: Gaussian Error Linear Unit
-    \item Mish: $x \cdot \tanh(\ln(1+e^x))$
-\end{itemize}
-\end{columns}
-\end{frame}
-
-%----------------------------------------------------------------------------------------
-% SECTION 10: Building Capacity
-%----------------------------------------------------------------------------------------
-\section{Building Capacity: Single Hidden Layer Networks}
-
-\begin{frame}{Single Hidden Layer Architecture}
-\begin{columns}
-\column{0.5\textwidth}
-\textbf{Network structure:}
-\begin{align}
-z^{(1)} &= W^{(1)}x + b^{(1)} \\
-h &= \sigma(z^{(1)}) \\
-z^{(2)} &= W^{(2)}h + b^{(2)} \\
-y &= z^{(2)}
-\end{align}
-
-\textbf{Parameters:}
-\begin{itemize}
-    \item $W^{(1)} \in \mathbb{R}^{h \times n}$
-    \item $b^{(1)} \in \mathbb{R}^h$
-    \item $W^{(2)} \in \mathbb{R}^{1 \times h}$
-    \item $b^{(2)} \in \mathbb{R}$
-\end{itemize}
-
-Total: $h(n+1) + (h+1)$
-
-\column{0.5\textwidth}
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/single-layer-nn1.png}
-\end{figure}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Solving XOR with Hidden Layer}
-\begin{columns}
-\column{0.5\textwidth}
-\textbf{Network solution:}
-Hidden layer learns:
-\begin{itemize}
-    \item $h_1$: OR gate
-    \item $h_2$: NAND gate
-\end{itemize}
-
-Output combines:
-$$y = h_1 \land h_2 = \text{XOR}$$
-
-\textbf{Weights example:}
-\begin{itemize}
-    \item $W^{(1)} = \begin{bmatrix} 20 & 20 \\ -20 & -20 \end{bmatrix}$
-    \item $b^{(1)} = \begin{bmatrix} -10 \\ 30 \end{bmatrix}$
-    \item $W^{(2)} = \begin{bmatrix} 20 & 20 \end{bmatrix}$
-    \item $b^{(2)} = -30$
-\end{itemize}
-
-\column{0.5\textwidth}
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/xor-decision-boundaries.png}
-\end{figure}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Multiple Output Neurons}
-\begin{columns}
-\column{0.5\textwidth}
-\textbf{Multi-class classification:}
-\begin{itemize}
-    \item Output layer: $m$ neurons
-    \item Each neuron: one class
-    \item Softmax activation:
-\end{itemize}
-$$p_i = \frac{e^{z_i}}{\sum_j e^{z_j}}$$
 
 \textbf{Applications:}
 \begin{itemize}
-    \item Classification (MNIST)
-    \item Multi-output regression
-    \item Structured prediction
+    \item Multi-class classification (softmax output)
+    \item Multi-task learning
+    \item Vector field prediction (PDEs)
+    \item Uncertainty quantification (mean + variance)
 \end{itemize}
-
-\column{0.5\textwidth}
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/multioutput-perceptrons.png}
-\end{figure}
-\end{columns}
 \end{frame}
 
-%----------------------------------------------------------------------------------------
-% SECTION 11: Training Neural Networks
-%----------------------------------------------------------------------------------------
-\section{Training Neural Networks}
+%========================================================================================
+% PART IV: TRAINING NEURAL NETWORKS
+%========================================================================================
+\section{Part IV: Training Neural Networks}
 
 \begin{frame}{The Training Process}
 \begin{columns}
 \column{0.5\textwidth}
-\textbf{Optimization loop:}
+\begin{figure}
+\centering
+\includegraphics[width=0.85\textwidth]{figs/training-convergence.png}
+\caption{Training loss decreases over iterations}
+\end{figure}
+\column{0.5\textwidth}
+\textbf{Training loop:}
 \begin{enumerate}
     \item Initialize weights randomly
     \item Forward pass: compute predictions
-    \item Compute loss
+    \item Compute loss: $\mathcal{L}(y, \hat{y})$
     \item Backward pass: compute gradients
-    \item Update weights
+    \item Update weights: $w \leftarrow w - \eta \nabla_w \mathcal{L}$
     \item Repeat until convergence
 \end{enumerate}
 
-\textbf{Key components:}
-\begin{itemize}
-    \item Loss function
-    \item Optimizer
-    \item Learning rate
-    \item Batch size
-\end{itemize}
-
-\column{0.5\textwidth}
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/training-convergence.png}
-\end{figure}
 \end{columns}
 \end{frame}
 
-\begin{frame}{Loss Functions}
-\textbf{Regression:}
-\begin{itemize}
-    \item MSE: $L = \frac{1}{N}\sum_{i=1}^N (y_i - \hat{y}_i)^2$
-    \item MAE: $L = \frac{1}{N}\sum_{i=1}^N |y_i - \hat{y}_i|$
-    \item Huber: Robust to outliers
-\end{itemize}
-
-\textbf{Classification:}
-\begin{itemize}
-    \item Cross-entropy: $L = -\sum_i y_i \log(\hat{y}_i)$
-    \item Hinge loss: SVM-style
-\end{itemize}
-
-\end{frame}
-
-%----------------------------------------------------------------------------------------
-% SECTION 12: Automatic Differentiation
-%----------------------------------------------------------------------------------------
-\section{Computing Gradients with Automatic Differentiation}
-
-\begin{frame}{The Core Insight: Functions are Computations}
+\begin{frame}{Computing Gradients: Three Approaches}
 \begin{columns}
-\column{0.5\textwidth}
-\textbf{Three approaches:}
-\begin{enumerate}
-    \item \textbf{Symbolic:} Manipulate expressions
-    \item \textbf{Numerical:} Finite differences
-    \item \textbf{Automatic:} Apply chain rule
-\end{enumerate}
-
-\textbf{Why AD wins:}
+\column{0.33\textwidth}
+\textbf{Symbolic:}
 \begin{itemize}
-    \item Exact to machine precision
-    \item Efficient (linear cost)
-    \item Handles any computation
+    \item Manipulate expressions
+    \item Exact derivatives
+    \item Expression swell
 \end{itemize}
 
-\column{0.5\textwidth}
-\begin{center}
-\begin{tabular}{lll}
-\toprule
-Method & Accuracy & Speed \\
-\midrule
-Symbolic & Exact & Slow \\
-Numerical & $O(h)$ & Fast \\
-Automatic & Machine $\epsilon$ & Fast \\
-\bottomrule
-\end{tabular}
-\end{center}
+Example:
+$$\frac{d}{dx}[x^2 \sin(x)]$$
+$$= 2x\sin(x) + x^2\cos(x)$$
 
-\vspace{0.5cm}
-\textbf{Numerical issues:}
+\column{0.33\textwidth}
+\textbf{Numerical:}
+\begin{itemize}
+    \item Finite differences
+    \item Approximation
+    \item Round-off errors
+\end{itemize}
+
 $$f'(x) \approx \frac{f(x+h) - f(x)}{h}$$
+
+Error: $O(h) + O(1/h)$
+
+\column{0.34\textwidth}
+\textbf{Automatic:}
 \begin{itemize}
-    \item Truncation: $O(h)$
-    \item Roundoff: $O(\epsilon/h)$
-    \item Optimal: $h \sim \sqrt{\epsilon}$
-\end{itemize}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Computational Graph}
-\begin{columns}
-\column{0.3\textwidth}
-\textbf{Example:} $y = (x_1 + x_2) \cdot x_2$
-
-\textbf{Forward computation:}
-\begin{enumerate}
-    \item $v_1 = x_1 = 2$
-    \item $v_2 = x_2 = 3$
-    \item $v_3 = v_1 + v_2 = 5$
-    \item $v_4 = v_3 \cdot v_2 = 15$
-\end{enumerate}
-
-\textbf{Graph representation:}
-Every operation becomes a node
-
-\column{0.7\textwidth}
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/ad1.png}
-\end{figure}
-\end{columns}
-\end{frame}
-
-%----------------------------------------------------------------------------------------
-\begin{frame}{Forward Mode: Dual Numbers}
-\begin{columns}
-\column{0.5\textwidth}
-\textbf{Dual number arithmetic:}
-$$x = a + b\epsilon, \quad \epsilon^2 = 0$$
-
-\textbf{Operations:}
-\begin{align}
-(a + b\epsilon) + (c + d\epsilon) &= (a+c) + (b+d)\epsilon \\
-(a + b\epsilon) \times (c + d\epsilon) &= ac + (ad+bc)\epsilon \\
-\sin(a + b\epsilon) &= \sin(a) + b\cos(a)\epsilon
-\end{align}
-
-\column{0.5\textwidth}
-\textbf{Example:} $f(x) = x^2 + \sin(x)$ at $x=2$
-
-Start: $x = 2 + 1\cdot\epsilon$
-\begin{align}
-x^2 &= 4 + 4\epsilon \\
-\sin(x) &= \sin(2) + \cos(2)\epsilon \\
-f(x) &= (4+\sin(2)) + (4+\cos(2))\epsilon
-\end{align}
-
-Result: $f(2)$ and $f'(2)$ simultaneously!
-\end{columns}
-\end{frame}
-
-\begin{frame}{Forward Mode: Computing $\partial y/\partial x_1$}
-\begin{figure}
-    \centering
-    \includegraphics[width=0.8\textwidth]{figs/ad3.png}
-\end{figure}
-
-Forward mode propagates derivatives alongside values from inputs to output.
-\end{frame}
-
-\begin{frame}{Forward Mode: Multiple Inputs}
-\textbf{For $n$ inputs, need $n$ forward passes:}
-\begin{itemize}
-    \item Pass 1: Seed $(1, 0, 0, ...)$ for $\partial f/\partial x_1$
-    \item Pass 2: Seed $(0, 1, 0, ...)$ for $\partial f/\partial x_2$
-    \item ...
-    \item Pass n: Seed $(0, 0, ..., 1)$ for $\partial f/\partial x_n$
+    \item Chain rule
+    \item Machine precision
+    \item Efficient
 \end{itemize}
 
-\textbf{Computational cost:} $O(n \times \text{ops})$
-
-\textbf{Best for:}
-\begin{itemize}
-    \item Few inputs, many outputs
-    \item Computing Jacobian-vector products
-    \item Sensitivity analysis
-\end{itemize}
-\end{frame}
-
-%----------------------------------------------------------------------------------------
-\begin{frame}{Reverse Mode: The Backward Pass}
-\begin{columns}
-\column{0.4\textwidth}
-\textbf{Key idea:}
-\begin{itemize}
-    \item Forward: Compute values
-    \item Backward: Compute gradients
-    \item Use chain rule recursively
-\end{itemize}
-
-\textbf{Adjoint notation:}
-$$\bar{v}_i = \frac{\partial y}{\partial v_i}$$
-
-\textbf{Chain rule:}
-$$\bar{v}_i = \sum_{j \in \text{children}(i)} \bar{v}_j \frac{\partial v_j}{\partial v_i}$$
-
-\column{0.6\textwidth}
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/ad7.png}
-\end{figure}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Reverse Mode: Complete Example}
-\textbf{Function:} $y = x_1^2 + x_2$
-
-\begin{columns}
-\column{0.5\textwidth}
-\textbf{Forward pass:}
-\begin{enumerate}
-    \item $v_1 = x_1 = 2$
-    \item $v_2 = x_2 = 3$
-    \item $v_3 = v_1^2 = 4$
-    \item $v_4 = v_3 + v_2 = 7$
-\end{enumerate}
-
-\column{0.5\textwidth}
-\textbf{Backward pass:}
-\begin{enumerate}
-    \item $\bar{v}_4 = 1$ (seed)
-    \item $\bar{v}_3 = \bar{v}_4 \cdot 1 = 1$
-    \item $\bar{v}_2 = \bar{v}_4 \cdot 1 = 1$
-    \item $\bar{v}_1 = \bar{v}_3 \cdot 2v_1 = 4$
-\end{enumerate}
+Decompose into elementary ops, apply chain rule
 \end{columns}
 
 \vspace{0.5cm}
-\textbf{Result:} $\nabla y = (4, 1)$ in ONE backward pass!
 
-\textbf{Cost:} $O(\text{ops})$ for all gradients
+\textbf{For neural networks:} Automatic differentiation (backpropagation) is the only viable option
 \end{frame}
 
-\begin{frame}{Forward vs Reverse Mode}
-\begin{center}
-\begin{tabular}{lll}
-\toprule
-Aspect & Forward Mode & Reverse Mode \\
-\midrule
-Direction & Input $\rightarrow$ Output & Output $\rightarrow$ Input \\
-Computes & Jacobian-vector product & Vector-Jacobian product \\
-Cost for $f: \mathbb{R}^n \to \mathbb{R}^m$ & $O(n \times \text{ops})$ & $O(m \times \text{ops})$ \\
-Best when & $n \ll m$ & $n \gg m$ \\
-Memory & Low & High (store graph) \\
-\bottomrule
-\end{tabular}
-\end{center}
+\begin{frame}{Automatic Differentiation: The Key Innovation}
+\begin{figure}
+\centering
+\includegraphics[width=0.9\textwidth]{figs/ad1.png}
+\caption{Computational graph for automatic differentiation}
+\end{figure}
 
-\vspace{0.5cm}
-\textbf{Machine Learning context:}
+\textbf{Key idea:} 
 \begin{itemize}
-    \item Millions of parameters (inputs)
-    \item One loss function (output)
-    \item $n \gg m = 1$
-    \item \textbf{Reverse mode (backprop) wins!}
+    \item Decompose function into elementary operations
+    \item Each operation has known derivative
+    \item Apply chain rule systematically
+    \item Store intermediate values for efficiency
 \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{AD in PyTorch}
+\begin{frame}{Forward Mode vs Reverse Mode AD}
 \begin{columns}
-\column{0.55\textwidth}
-\begin{lstlisting}
-import torch
+\column{0.5\textwidth}
+\textbf{Forward Mode:}
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{figs/ad3.png}
+\end{figure}
+\begin{itemize}
+    \item Compute $\dot{y} = \frac{\partial y}{\partial x_i}$
+    \item Propagate derivatives forward
+    \item One pass per input dimension
+    \item Good for: $\mathbb{R}^n \to \mathbb{R}^m$, $n \ll m$
+\end{itemize}
 
-# Simple example
-x = torch.tensor(2.0, requires_grad=True)
-y = x**2 + torch.sin(x)
-y.backward()
-print(f"dy/dx = {x.grad}")
-# Output: dy/dx = 4.0 + cos(2)
+\column{0.5\textwidth}
+\textbf{Reverse Mode:}
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{figs/ad7.png}
+\end{figure}
+\begin{itemize}
+    \item Compute $\bar{x} = \frac{\partial L}{\partial x}$
+    \item Propagate gradients backward
+    \item One pass for all gradients
+    \item Good for: $\mathbb{R}^n \to \mathbb{R}$, $n \gg 1$
+\end{itemize}
+\end{columns}
+\end{frame}
 
-# Neural network example
-class Net(torch.nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.fc1 = torch.nn.Linear(10, 50)
-        self.fc2 = torch.nn.Linear(50, 1)
+\begin{frame}{Backpropagation = Reverse Mode AD}
+\textbf{Why reverse mode for neural networks?}
+\begin{itemize}
+    \item Loss is scalar: $\mathcal{L}: \mathbb{R}^n \to \mathbb{R}$
+    \item Many parameters (thousands to billions)
+    \item Need all gradients $\frac{\partial \mathcal{L}}{\partial w_i}$
+    \item Reverse mode: ONE backward pass gets ALL gradients!
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{The algorithm:}
+\begin{enumerate}
+    \item \textbf{Forward pass:} Compute and store all activations
+    \item \textbf{Backward pass:} Starting from loss, propagate gradients
+\end{enumerate}
+
+\begin{align}
+\text{Forward: } & a^{(l)} = \sigma(W^{(l)} a^{(l-1)} + b^{(l)}) \\
+\text{Backward: } & \delta^{(l)} = (W^{(l+1)})^T \delta^{(l+1)} \odot \sigma'(z^{(l)})
+\end{align}
+\end{frame}
+
+\begin{frame}{Backpropagation: Mathematical Details}
+\textbf{Forward Pass:}
+\begin{align}
+z^{(1)} &= W^{(1)} x + b^{(1)} \\
+a^{(1)} &= \sigma(z^{(1)}) \\
+z^{(2)} &= W^{(2)} a^{(1)} + b^{(2)} \\
+\hat{y} &= \sigma(z^{(2)}) \\
+\mathcal{L} &= \frac{1}{2}\|\hat{y} - y\|^2
+\end{align}
+
+\textbf{Backward Pass:}
+\begin{align}
+\delta^{(2)} &= (\hat{y} - y) \odot \sigma'(z^{(2)}) \\
+\nabla_{W^{(2)}} \mathcal{L} &= \delta^{(2)} (a^{(1)})^T \\
+\nabla_{b^{(2)}} \mathcal{L} &= \delta^{(2)} \\
+\delta^{(1)} &= (W^{(2)})^T \delta^{(2)} \odot \sigma'(z^{(1)}) \\
+\nabla_{W^{(1)}} \mathcal{L} &= \delta^{(1)} x^T \\
+\nabla_{b^{(1)}} \mathcal{L} &= \delta^{(1)}
+\end{align}
+\end{frame}
+
+\begin{frame}[fragile]{Backpropagation Implementation}
+\begin{lstlisting}[language=Python]
+def backpropagation(X, y, W1, b1, W2, b2):
+    """
+    Compute gradients using backpropagation
+    """
+    m = X.shape[0]
     
-    def forward(self, x):
-        x = torch.relu(self.fc1(x))
-        return self.fc2(x)
+    # Forward pass
+    z1 = X @ W1 + b1
+    a1 = sigmoid(z1)
+    z2 = a1 @ W2 + b2
+    a2 = sigmoid(z2)
+    
+    # Compute loss
+    loss = 0.5 * np.sum((a2 - y)**2) / m
+    
+    # Backward pass
+    # Output layer
+    delta2 = (a2 - y) * sigmoid_derivative(z2)
+    dW2 = a1.T @ delta2 / m
+    db2 = np.sum(delta2, axis=0, keepdims=True) / m
+    
+    # Hidden layer
+    delta1 = (delta2 @ W2.T) * sigmoid_derivative(z1)
+    dW1 = X.T @ delta1 / m
+    db1 = np.sum(delta1, axis=0, keepdims=True) / m
+    
+    return dW1, db1, dW2, db2, loss
 
-model = Net()
-x = torch.randn(32, 10)
-y = model(x)
-loss = y.mean()
-loss.backward()  # Computes all gradients!
+def sigmoid_derivative(z):
+    s = sigmoid(z)
+    return s * (1 - s)
 \end{lstlisting}
-
-\column{0.45\textwidth}
-\textbf{PyTorch autograd:}
-\begin{itemize}
-    \item Dynamic graph
-    \item Automatic tracking
-    \item Efficient backprop
-\end{itemize}
-
-\textbf{Key features:}
-\begin{itemize}
-    \item \texttt{requires\_grad=True}
-    \item \texttt{backward()} method
-    \item Gradient accumulation
-    \item Graph optimization
-\end{itemize}
-\end{columns}
 \end{frame}
 
-%----------------------------------------------------------------------------------------
-\section{Gradient Descent Optimization}
-
-\begin{frame}{Gradient Descent Algorithm}
+\begin{frame}{Gradient Descent Variants}
 \begin{columns}
-\column{0.35\textwidth}
-\textbf{Basic algorithm:}
-\begin{algorithmic}
-\STATE Initialize $\theta_0$
-\WHILE{not converged}
-    \STATE $g_t = \nabla L(\theta_{t-1})$
-    \STATE $\theta_t = \theta_{t-1} - \alpha g_t$
-\ENDWHILE
-\end{algorithmic}
-
-\textbf{Variants:}
+\column{0.5\textwidth}
+\textbf{Batch Gradient Descent:}
 \begin{itemize}
-    \item SGD: Single sample
-    \item Mini-batch: Small subset
-    \item Full batch: All data
+    \item Use entire dataset
+    \item Exact gradient
+    \item Slow for large datasets
 \end{itemize}
+$$\theta_{t+1} = \theta_t - \eta \nabla_\theta \mathcal{L}(\theta_t; \mathcal{D})$$
 
-\column{0.65\textwidth}
+\textbf{Stochastic GD (SGD):}
+\begin{itemize}
+    \item One sample at a time
+    \item Noisy gradient
+    \item Fast but unstable
+\end{itemize}
+$$\theta_{t+1} = \theta_t - \eta \nabla_\theta \mathcal{L}(\theta_t; x_i)$$
+
+\textbf{Mini-batch GD:}
+\begin{itemize}
+    \item Best of both worlds
+    \item Batch size: 32-512 typical
+\end{itemize}
+$$\theta_{t+1} = \theta_t - \eta \nabla_\theta \mathcal{L}(\theta_t; \mathcal{B})$$
+
+\column{0.5\textwidth}
 \begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/sgd.png}
-\end{figure}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Learning Rate Effects}
-\begin{columns}
-\column{0.35\textwidth}
-\textbf{Too small ($\alpha = 0.001$):}
-\begin{itemize}
-    \item Slow convergence
-    \item May get stuck
-    \item Many iterations needed
-\end{itemize}
-
-\textbf{Too large ($\alpha = 1.0$):}
-\begin{itemize}
-    \item Oscillations
-    \item May diverge
-    \item Miss minimum
-\end{itemize}
-
-\textbf{Just right ($\alpha = 0.01$):}
-\begin{itemize}
-    \item Steady progress
-    \item Reaches minimum
-    \item Efficient convergence
-\end{itemize}
-
-\column{0.65\textwidth}
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/training-validation-fit.png}
+\centering
+\includegraphics[width=\textwidth]{figs/sgd.png}
+\caption{SGD trajectory: noisy but effective}
 \end{figure}
 \end{columns}
 \end{frame}
 
 \begin{frame}{Modern Optimizers}
+\textbf{Momentum:}
+\begin{align}
+v_{t+1} &= \beta v_t + (1-\beta) g_t \\
+\theta_{t+1} &= \theta_t - \eta v_{t+1}
+\end{align}
+Accelerates convergence, reduces oscillations
+
+\vspace{0.3cm}
+
+\textbf{Adam (Adaptive Moment Estimation):}
+\begin{align}
+m_t &= \beta_1 m_{t-1} + (1-\beta_1) g_t \quad \text{(1st moment)} \\
+v_t &= \beta_2 v_{t-1} + (1-\beta_2) g_t^2 \quad \text{(2nd moment)} \\
+\hat{m}_t &= m_t / (1 - \beta_1^t) \quad \text{(bias correction)} \\
+\hat{v}_t &= v_t / (1 - \beta_2^t) \\
+\theta_t &= \theta_{t-1} - \eta \hat{m}_t / (\sqrt{\hat{v}_t} + \epsilon)
+\end{align}
+
+\textbf{Benefits:} Adaptive learning rates per parameter, works well in practice
+\end{frame}
+
+\begin{frame}{Loss Functions for Different Problems}
 \begin{columns}
 \column{0.5\textwidth}
-\textbf{Momentum SGD:}
-$$v_t = \beta v_{t-1} + \nabla L(\theta_{t-1})$$
-$$\theta_t = \theta_{t-1} - \alpha v_t$$
-
-\textbf{Adam:}
+\textbf{Regression:}
 \begin{itemize}
-    \item Adaptive learning rates
-    \item Momentum + RMSprop
-    \item Bias correction
+    \item MSE: $\mathcal{L} = \frac{1}{n}\sum (y_i - \hat{y}_i)^2$
+    \item MAE: $\mathcal{L} = \frac{1}{n}\sum |y_i - \hat{y}_i|$
+    \item Huber: Robust to outliers
+\end{itemize}
+
+\textbf{Classification:}
+\begin{itemize}
+    \item Cross-entropy: \\
+    $\mathcal{L} = -\sum y_i \log(\hat{y}_i)$
+    \item Hinge loss (SVM)
+    \item Focal loss (imbalanced)
 \end{itemize}
 
 \column{0.5\textwidth}
-\textbf{Comparison:}
-\begin{center}
-\small
-\begin{tabular}{ll}
-\toprule
-Optimizer & Properties \\
-\midrule
-SGD & Simple, proven \\
-Momentum & Accelerates \\
-AdaGrad & Adaptive \\
-RMSprop & Adaptive + stable \\
-Adam & Best default \\
-\bottomrule
-\end{tabular}
-\end{center}
+\textbf{Physics-Informed:}
+\begin{itemize}
+    \item PDE residual: \\
+    $\mathcal{L}_{PDE} = \|\mathcal{N}[u_\theta]\|^2$
+    \item Boundary conditions: \\
+    $\mathcal{L}_{BC} = \|u_\theta|_{\partial\Omega} - g\|^2$
+    \item Initial conditions: \\
+    $\mathcal{L}_{IC} = \|u_\theta|_{t=0} - u_0\|^2$
+\end{itemize}
+
+\textbf{Total loss:}
+$$\mathcal{L} = \lambda_1 \mathcal{L}_{data} + \lambda_2 \mathcal{L}_{PDE} + \lambda_3 \mathcal{L}_{BC}$$
 \end{columns}
 \end{frame}
 
-%----------------------------------------------------------------------------------------
-\section{Universal Approximation Theorem}
+\begin{frame}{Training Challenges: Overfitting}
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{figs/training-validation-fit.png}
+\caption{Overfitting: model memorizes training data, fails to generalize}
+\end{figure}
 
-\begin{frame}{The Universal Approximation Theorem}
-\begin{block}{Theorem (Cybenko 1989, Hornik 1991)}
-Let $\sigma$ be a continuous, non-polynomial activation function. For any continuous function $f: [0,1]^n \to \mathbb{R}$ and any $\epsilon > 0$, there exists a single-hidden-layer network:
-$$N(x) = \sum_{i=1}^m \alpha_i \sigma(\mathbf{w}_i^T\mathbf{x} + b_i)$$
-such that $\sup_{x \in [0,1]^n} |f(x) - N(x)| < \epsilon$
-\end{block}
-
-\textbf{Key points:}
+\textbf{Signs of overfitting:}
 \begin{itemize}
-    \item One hidden layer suffices
-    \item Width determines accuracy
-    \item Says nothing about learnability
-    \item Continuity is essential
+    \item Training loss $\downarrow$, validation loss $\uparrow$
+    \item Large gap between training and validation performance
+    \item Model too complex for data
 \end{itemize}
 \end{frame}
 
-\begin{frame}{What the Theorem States}
-\textbf{Formally:} Neural networks are dense in $C([0,1]^n)$
-
-\textbf{Intuitively:}
-\begin{itemize}
-    \item Any continuous function can be approximated
-    \item To any desired accuracy
-    \item With enough neurons
-\end{itemize}
-
-\textbf{What it doesn't say:}
-\begin{itemize}
-    \item How many neurons needed
-    \item How to find the weights
-    \item Whether deep is better than wide
-    \item Generalization guarantees
-\end{itemize}
-
-\textbf{Practical implications:}
-\begin{itemize}
-    \item Neural networks are universal function approximators
-    \item Theoretical foundation for deep learning
-    \item Justifies use in scientific computing
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Why This Matters for SciML}
-\textbf{Traditional numerical methods:}
-\begin{itemize}
-    \item Fixed basis functions (polynomials, Fourier)
-    \item Problem-specific methods
-    \item Mesh-based discretization
-\end{itemize}
-
-\textbf{Neural networks (UAT guarantee):}
-\begin{itemize}
-    \item Adaptive basis functions
-    \item Universal approximation capability
-    \item Mesh-free representation
-    \item Differentiable everywhere
-\end{itemize}
-
-\textbf{Applications enabled:}
-\begin{itemize}
-    \item Physics-informed neural networks (PINNs)
-    \item Neural ODEs/PDEs
-    \item Operator learning
-    \item Inverse problems
-\end{itemize}
-\end{frame}
-
-%----------------------------------------------------------------------------------------
-\section{Mathematical Foundations: Function Spaces}
-
-\begin{frame}{Banach Spaces: The Setting}
-\begin{block}{Definition}
-A Banach space is a complete normed vector space.
-\end{block}
-
-\textbf{For function approximation:}
-\begin{itemize}
-    \item $C([a,b])$: Continuous functions
-    \item Norm: $\|f\|_\infty = \sup_{x \in [a,b]} |f(x)|$
-    \item Complete: Cauchy sequences converge
-\end{itemize}
-
-\textbf{Key property - Density:}
-\begin{block}{Dense Subset}
-$S \subseteq X$ is dense if for every $f \in X$ and $\epsilon > 0$, there exists $g \in S$ with $\|f - g\| < \epsilon$
-\end{block}
-
-UAT says: Neural networks are dense in $C([0,1]^n)$
-\end{frame}
-
-\begin{frame}{Hilbert Spaces: Adding Geometry}
-\textbf{Inner product space:}
-$$\langle f, g \rangle = \int_a^b f(x)g(x) dx$$
-
-\textbf{Induced norm:}
-$$\|f\|_2 = \sqrt{\langle f, f \rangle}$$
-
-\textbf{Orthogonal basis:}
-\begin{itemize}
-    \item Fourier: $\{\sin(n\pi x), \cos(n\pi x)\}$
-    \item Legendre polynomials
-    \item Wavelets
-\end{itemize}
-
-\textbf{Neural networks vs orthogonal basis:}
-\begin{itemize}
-    \item Adaptive vs fixed
-    \item Local vs global
-    \item Nonlinear vs linear combination
-\end{itemize}
-\end{frame}
-
-%----------------------------------------------------------------------------------------
-
-\begin{frame}{Constructive Proof with ReLU}
-\textbf{Key idea:} Build piecewise linear approximations
-
-\textbf{ReLU building blocks:}
-$$\text{bump}_{[a,b]}(x) = \ReLU(x-a) - \ReLU(x-b)$$
-
+\begin{frame}{Regularization Techniques}
 \begin{columns}
 \column{0.5\textwidth}
-\textbf{Algorithm:}
-\begin{enumerate}
-    \item Divide $[0,1]$ into intervals
-    \item Approximate linearly on each
-    \item Use ReLUs to create pieces
-    \item Sum to get approximation
-\end{enumerate}
-
-\column{0.5\textwidth}
-\begin{figure}
-    \centering
-    \includegraphics[width=0.7\textwidth]{figs/relu-decomposition-sinpi.png}
-\end{figure}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Building Blocks: The Role of Bias}
-\begin{columns}
-\column{0.35\textwidth}
-\textbf{Single ReLU:}
-$$h = \ReLU(wx + b)$$
-
-\textbf{Breakpoint location:}
-$$wx + b = 0 \Rightarrow x = -b/w$$
-
-\textbf{Bias controls position!}
-
-\column{0.65\textwidth}
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/bias-breakpoints-detailed.png}
-\end{figure}
-\end{columns}
-
-\textbf{Creating complex functions:}
-Combine multiple ReLUs with different biases to approximate any continuous function
-\end{frame}
-
-\begin{frame}{Proof by Contradiction (Hahn-Banach)}
-\textbf{Assume:} Neural networks NOT dense in $C([0,1])$
-
-\textbf{Then:} Exists $f^*$ and $\epsilon > 0$ such that
-$$\|f^* - g\|_\infty \geq \epsilon \quad \forall g \in \mathcal{N}$$
-
-\textbf{By Hahn-Banach:} Exists linear functional $L$ with
+\textbf{Classical methods:}
 \begin{itemize}
-    \item $L(f^*) \neq 0$
-    \item $L(g) = 0$ for all neural networks $g$
-\end{itemize}
-
-\textbf{By Riesz:} $L$ corresponds to measure $\mu$
-$$L(f) = \int f d\mu$$
-
-\textbf{Contradiction:} $\mu$ must annihilate all half-spaces $\Rightarrow$ $\mu = 0$ $\Rightarrow$ $L(f^*) = 0$
-\end{frame}
-
-\begin{frame}{Visualization of the Contradiction}
-\begin{figure}
-    \centering
-    \includegraphics[width=0.6\textwidth]{figs/contradiction-visualization.png}
-\end{figure}
-
-If neural networks can't approximate some continuous function, a "detector" measure must exist. But this detector must be zero everywhere—contradiction!
-\end{frame}
-
-%----------------------------------------------------------------------------------------
-\section{What Neural Networks Cannot Approximate}
-
-\begin{frame}{The Continuity Requirement}
-\textbf{Key limitation:} Neural networks with continuous activations can only approximate continuous functions
-
-\textbf{Example - Step function:}
-$$H(x) = \begin{cases} 0 & x < 0.5 \\ 1 & x \geq 0.5 \end{cases}$$
-
-\textbf{Why it fails:}
-\begin{itemize}
-    \item Continuous functions cannot have jumps
-    \item Sigmoid approximation always smooth
-    \item Error at discontinuity never vanishes
-\end{itemize}
-
-\textbf{Different norms:}
-\begin{itemize}
-    \item $L^\infty$: Poor (max error at jump)
-    \item $L^2$: Good (integral of error small)
-    \item $L^1$: Good (average error small)
-\end{itemize}
-\end{frame}
-
-\begin{frame}{The Detector That Distinguishes}
-\textbf{Signed measure detector:}
-$$\mu = +1 \text{ on } [0, 0.5), \quad -1 \text{ on } [0.5, 1]$$
-
-\textbf{Applied to different functions:}
-\begin{itemize}
-    \item Step function: $\int H d\mu = -0.5$
-    \item Continuous approximation: $\int f d\mu \approx 0$
-    \item Neural network: Always $\approx 0$
-\end{itemize}
-
-\textbf{This detector reveals:}
-Neural networks cannot perfectly approximate discontinuous functions in supremum norm
-
-\textbf{Practical implications:}
-\begin{itemize}
-    \item Shocks in PDEs need special treatment
-    \item Material interfaces challenging
-    \item Use domain decomposition
-\end{itemize}
-\end{frame}
-
-%----------------------------------------------------------------------------------------
-\section{Practical Implementation}
-
-\begin{frame}{Width vs Approximation Quality}
-\begin{columns}
-\column{0.5\textwidth}
-\textbf{Experimental setup:}
-\begin{itemize}
-    \item Target: $\sin(\pi x)$
-    \item Networks: 5, 10, 20, 50 neurons
-    \item Training: 1000 epochs
-    \item Optimizer: Adam
-\end{itemize}
-
-\textbf{Results:}
-\begin{itemize}
-    \item 5 neurons: Error $\sim 10^{-2}$
-    \item 10 neurons: Error $\sim 10^{-3}$
-    \item 20 neurons: Error $\sim 10^{-4}$
-    \item 50 neurons: Error $\sim 10^{-5}$
-\end{itemize}
-
-\column{0.5\textwidth}
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/width-quality.png}
-\end{figure}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Width vs Error: Quantitative Analysis}
-\begin{figure}
-    \centering
-    \includegraphics[width=0.8\textwidth]{figs/width-vs-error.png}
-\end{figure}
-
-\textbf{Key observations:}
-\begin{itemize}
-    \item Power law: Error $\sim N^{-\alpha}$
-    \item Diminishing returns
-    \item Optimization challenges for very wide networks
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Training and Validation}
-\begin{figure}
-    \centering
-    \includegraphics[width=0.8\textwidth]{figs/training-validation-fit.png}
-\end{figure}
-
-\textbf{Detecting overfitting:}
-\begin{itemize}
-    \item Training loss decreases
-    \item Validation loss increases
-    \item Gap indicates overfitting
-    \item Use early stopping
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Overfitting and Regularization}
-\begin{columns}
-\column{0.35\textwidth}
-\textbf{Overfitting symptoms:}
-\begin{itemize}
-    \item Perfect training fit
-    \item Poor generalization
-    \item High-frequency oscillations
-\end{itemize}
-
-\textbf{Regularization techniques:}
-\begin{itemize}
-    \item $L_2$ penalty: $\lambda \|W\|^2$
-    \item Dropout
+    \item $L^2$ regularization (weight decay): \\
+    $\mathcal{L}_{total} = \mathcal{L} + \lambda \|\theta\|^2$
+    \item $L^1$ regularization (sparsity)
     \item Early stopping
     \item Data augmentation
 \end{itemize}
 
-\column{0.65\textwidth}
+\textbf{Modern methods:}
+\begin{itemize}
+    \item Dropout: randomly zero neurons
+    \item Batch normalization
+    \item Layer normalization
+    \item Mixup, cutout, etc.
+\end{itemize}
+
+\column{0.5\textwidth}
 \begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/overfitting-demo.png}
+\centering
+\includegraphics[width=\textwidth]{figs/overfitting-demo.png}
+\caption{Effect of regularization on decision boundaries}
 \end{figure}
 \end{columns}
 \end{frame}
 
-%----------------------------------------------------------------------------------------
-\section{The XOR Problem: Historical Context}
+%========================================================================================
+% PART V: ARCHITECTURE DESIGN
+%========================================================================================
+\section{Part V: Architecture Design}
 
-\begin{frame}{The XOR Crisis (1969)}
-\textbf{Minsky \& Papert's "Perceptrons":}
-\begin{itemize}
-    \item Proved single perceptron cannot solve XOR
-    \item Led to first AI winter
-    \item Funding dried up for neural network research
-\end{itemize}
+\begin{frame}{Constructive Proof: Building Functions with ReLU}
+\textbf{ReLU (Rectified Linear Unit):}
+$$\ReLU(x) = \max(0, x)$$
 
-\textbf{The comeback (1986):}
-\begin{itemize}
-    \item Backpropagation rediscovered
-    \item Multi-layer networks solve XOR
-    \item Deep learning revolution begins
-\end{itemize}
+\textbf{Building blocks:}
+\begin{align}
+\text{Bump function: } & \ReLU(x-a) - \ReLU(x-b) \\
+\text{Triangle: } & \ReLU(x) - 2\ReLU(x-1) + \ReLU(x-2) \\
+\text{Step approx: } & \frac{1}{h}[\ReLU(x) - \ReLU(x-h)]
+\end{align}
 
-\textbf{Historical timeline:}
+\begin{figure}
+\centering
+% ReLU building blocks figure not available
+\includegraphics[width=0.7\textwidth]{figs/relu-decomposition-sinpi.png}
+\caption{Constructing complex functions from ReLU units}
+\end{figure}
+\end{frame}
+
+\begin{frame}{ReLU Networks: Piecewise Linear Approximation}
+\begin{figure}
+\centering
+\includegraphics[width=0.85\textwidth]{figs/relu-decomposition-sinpi.png}
+\caption{ReLU network approximating $\sin(\pi x)$ as piecewise linear function}
+\end{figure}
+
+\textbf{Key insights:}
 \begin{itemize}
-    \item 1943: McCulloch-Pitts neuron
-    \item 1958: Rosenblatt's perceptron
-    \item 1969: Minsky-Papert critique
-    \item 1986: Backpropagation revival
-    \item 2012: AlexNet and deep learning boom
+    \item Each ReLU creates a "kink" or breakpoint
+    \item $N$ neurons → up to $N$ linear pieces
+    \item Adaptive placement of breakpoints via training
+    \item Universal approximation through piecewise linear functions
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Why Depth Solves XOR}
-\textbf{Mathematical insight:}
-XOR = (OR) AND (NOT AND)
+\begin{frame}{The Role of Bias: Controlling Breakpoints}
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{figs/bias-breakpoints-detailed.png}
+\caption{Bias parameters control where ReLU units activate}
+\end{figure}
 
-\textbf{Network decomposition:}
+\textbf{For neuron $h = \ReLU(wx + b)$:}
 \begin{itemize}
-    \item Layer 1: Learn OR and NAND
-    \item Layer 2: Combine with AND
+    \item Activates when $wx + b = 0$
+    \item Breakpoint at $x = -b/w$
+    \item Bias shifts the activation threshold
+    \item Network learns optimal breakpoint locations
 \end{itemize}
-
-\textbf{Feature transformation:}
-\begin{columns}
-\column{0.5\textwidth}
-Original space: Not separable
-\begin{figure}
-    \centering
-    \includegraphics[width=0.8\textwidth]{figs/xor-problem.png}
-\end{figure}
-
-\column{0.5\textwidth}
-Hidden space: Linearly separable
-\begin{figure}
-    \centering
-    \includegraphics[width=0.8\textwidth]{figs/xor-decision-boundaries.png}
-\end{figure}
-\end{columns}
 \end{frame}
 
-%----------------------------------------------------------------------------------------
-\section{Depth vs Width Trade-offs}
-
-\begin{frame}{Beyond XOR: High-Frequency Functions}
+\begin{frame}{Width vs Depth Trade-offs}
 \begin{figure}
-    \centering
-    \includegraphics[width=0.92\textwidth]{figs/shallow-vs-deep-sin100x.png}
+\centering
+\includegraphics[width=0.92\textwidth]{figs/shallow-vs-deep-sin100x.png}
 \end{figure}
 
 \vspace{-0.5em}
 \begin{columns}
 \column{0.5\textwidth}
-\textbf{Shallow Network:}
+\textbf{Shallow (Wide) Networks:}
 \begin{itemize}
     \item 100 neurons, 1 hidden layer
-    \item RMSE: 0.718
-    \item Struggles with high frequency
+    \item Universal approximator
+    \item May need exponential width
+    \item RMSE: 0.718 for $\sin(100x)$
 \end{itemize}
+
 \column{0.5\textwidth}
-\textbf{Deep Network:}
+\textbf{Deep (Narrow) Networks:}
 \begin{itemize}
-    \item 20 neurons × 4 layers
-    \item RMSE: 0.478 (50\% better)
-    \item Captures oscillations well
+    \item 20 neurons $\times$ 4 layers
+    \item Compositional efficiency
+    \item Better feature hierarchy
+    \item RMSE: 0.478 (50\% better!)
 \end{itemize}
 \end{columns}
 \end{frame}
 
 \begin{frame}{Network Architecture Comparison}
 \begin{figure}
-    \centering
-    \includegraphics[width=0.95\textwidth]{figs/network-architectures-transparent.png}
+\centering
+\includegraphics[width=0.95\textwidth]{figs/network-architectures-transparent.png}
 \end{figure}
 
 \begin{itemize}
-    \item \textbf{Parameters:} Both networks have similar parameter counts
+    \item \textbf{Parameters:} Deep network has more total parameters but better efficiency
     \item \textbf{Shallow:} 100 input-to-hidden + 100 hidden-to-output = 200 weights
-    \item \textbf{Deep:} 20 + 20×20×3 + 20 = 1240 weights
+    \item \textbf{Deep:} $20 + 20 \times 20 \times 3 + 20 = 1240$ weights
     \item \textbf{Key difference:} Compositional structure in deep networks
 \end{itemize}
-
-\textbf{Why depth helps:}
-Hierarchical composition of features
 \end{frame}
 
-\begin{frame}{Width vs Depth: Key Insights}
-\begin{columns}
-\column{0.5\textwidth}
-\textbf{Wide networks:}
+\begin{frame}{Why Depth Helps: Theoretical Insights}
+\textbf{Exponential expressivity:}
 \begin{itemize}
-    \item UAT guarantee
-    \item Simple optimization
-    \item Memory intensive
-    \item Limited hierarchy
+    \item Shallow network needs $O(2^n)$ neurons
+    \item Deep network needs $O(n)$ layers
+    \item Each layer can double the number of linear regions
 \end{itemize}
-
-\textbf{Deep networks:}
-\begin{itemize}
-    \item Exponential expressiveness
-    \item Feature hierarchy
-    \item Parameter efficient
-    \item Harder to train
-\end{itemize}
-
-\column{0.5\textwidth}
-\textbf{Empirical guidelines:}
-\begin{itemize}
-    \item Smooth functions: Shallow OK
-    \item Complex patterns: Go deep
-    \item High frequency: Need depth
-    \item Start simple, add complexity
-\end{itemize}
-\end{columns}
 
 \vspace{0.5cm}
-\begin{block}{Key Insight}
-Depth enables exponentially more efficient representations than width alone
-\end{block}
-\end{frame}
 
-%----------------------------------------------------------------------------------------
-\section{Summary and Key Takeaways}
-
-\begin{frame}{What We've Learned}
-\textbf{Mathematical foundations:}
+\textbf{Example: Representing parity function}
 \begin{itemize}
-    \item Weierstrass $\rightarrow$ Polynomials approximate continuous functions
-    \item UAT $\rightarrow$ Neural networks are universal approximators
-    \item Function spaces provide rigorous framework
+    \item Shallow: Needs $2^{n-1}$ hidden units
+    \item Deep: Needs $O(n)$ units total
 \end{itemize}
 
-\textbf{Building blocks:}
+\vspace{0.5cm}
+
+\textbf{Hierarchical composition:}
 \begin{itemize}
-    \item Perceptron: Linear transformation + activation
-    \item Nonlinearity: Essential for expressiveness
-    \item Hidden layers: Solve XOR and beyond
+    \item Layer 1: Edges and gradients
+    \item Layer 2: Simple patterns
+    \item Layer 3: Complex features
+    \item Layer 4: High-level concepts
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Approximation Quality vs Network Width}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{figs/width-quality.png}
+\caption{More neurons improve approximation quality}
+\end{figure}
+
+\column{0.5\textwidth}
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{figs/width-vs-error.png}
+\caption{Error decreases with network width}
+\end{figure}
+
+
+\textbf{Empirical observations:}
+\begin{itemize}
+    \item Error $\sim O(1/\sqrt{N})$ for $N$ neurons
+    \item Diminishing returns after certain width
+    \item Optimal width depends on function complexity
+    \item Trade-off: accuracy vs computational cost
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Proof Strategy: Hahn-Banach Argument}
+\begin{columns}
+\column{0.35\textwidth}
+\textbf{Strategy:}
+\begin{enumerate}
+	\item Assume neural networks are NOT dense
+	\item Apply Hahn-Banach theorem
+	\item Find separating functional
+	\item Show functional must be zero
+	\item Reach contradiction
+\end{enumerate}
+	
+\column{0.65\textwidth}
+\begin{figure}
+\centering
+\includegraphics[width=0.5\textwidth]{figs/contradiction-visualization.png}
+\caption{Proof by contradiction using functional analysis}
+\end{figure}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Which Activations Work?}
+\textbf{Requirements for universal approximation:}
+\begin{itemize}
+    \item Non-polynomial
+    \item Non-constant
+    \item Bounded (for some theorems)
+    \item Continuous (for some theorems)
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Common choices:}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Sigmoid:} $\sigma(x) = \frac{1}{1+e^{-x}}$
+\begin{itemize}
+    \item Smooth, bounded
+    \item Vanishing gradients
+    \item Historical choice
+\end{itemize}
+
+\textbf{Tanh:} $\tanh(x) = \frac{e^x - e^{-x}}{e^x + e^{-x}}$
+\begin{itemize}
+    \item Zero-centered
+    \item Bounded [-1, 1]
+    \item Still saturates
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{ReLU:} $\ReLU(x) = \max(0, x)$
+\begin{itemize}
+    \item Simple, efficient
+    \item No saturation
+    \item Dead neurons problem
+\end{itemize}
+
+\textbf{Modern variants:}
+\begin{itemize}
+    \item Leaky ReLU: $\max(0.01x, x)$
+    \item ELU, SELU, Swish
+    \item GELU (Transformers)
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Parabolic Activations Don't Work}
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{figs/parabolic-failure.png}
+\caption{Polynomial activations fail: networks collapse to polynomials}
+\end{figure}
+
+\textbf{Why $\sigma(x) = x^2$ fails:}
+\begin{itemize}
+    \item Composition of polynomials is polynomial
+    \item Limited to polynomial approximation
+    \item No universal approximation property
+    \item Cannot represent arbitrary continuous functions
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Sobolev Spaces and Derivatives}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Definition:}
+$$H^1([0,1]) = \{f : \|f\|_{H^1} < \infty\}$$
+where
+$$\|f\|_{H^1}^2 = \|f\|_{L^2}^2 + \|f'\|_{L^2}^2$$
+
+\textbf{Why important for PDEs:}
+\begin{itemize}
+    \item PDEs involve derivatives
+    \item Need to approximate $u$ AND $\nabla u$
+    \item Weak solutions live in Sobolev spaces
+\end{itemize}
+
+\column{0.5\textwidth}
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{figs/derivative-approximation.png}
+\caption{Neural networks approximate both function and derivative}
+\end{figure}
+\end{columns}
+
+\textbf{Key result:} Neural networks are dense in $H^s$ for any $s \geq 0$
+\end{frame}
+
+%========================================================================================
+% PART VI: PRACTICAL CONSIDERATIONS AND WRAP-UP
+%========================================================================================
+\section{Part VI: Practical Considerations and Summary}
+
+\begin{frame}{Physics-Informed Neural Networks (PINNs)}
+\textbf{Key idea:} Embed physics directly into the loss function
+
+\vspace{0.5cm}
+
+For PDE: $\mathcal{N}[u] = f$ in $\Omega$, $u = g$ on $\partial\Omega$
+
+\vspace{0.5cm}
+
+\textbf{Loss function:}
+$$\mathcal{L} = \underbrace{\lambda_1 \|\mathcal{N}[u_\theta] - f\|^2}_{\text{PDE residual}} + 
+\underbrace{\lambda_2 \|u_\theta|_{\partial\Omega} - g\|^2}_{\text{Boundary}} + 
+\underbrace{\lambda_3 \|u_\theta - u_{data}\|^2}_{\text{Data}}$$
+
+\textbf{Advantages:}
+\begin{itemize}
+    \item Mesh-free
+    \item Handles high dimensions
+    \item Incorporates physics and data
+    \item Inverse problems
+\end{itemize}
+
+\textbf{Challenges:}
+\begin{itemize}
+    \item Balancing loss terms
+    \item Sampling collocation points
+    \item Training stability
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Implementation Best Practices}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Initialization:}
+\begin{itemize}
+    \item Xavier/He initialization
+    \item Scale with $1/\sqrt{n_{in}}$
+    \item Avoid symmetry
+\end{itemize}
+
+\textbf{Architecture:}
+\begin{itemize}
+    \item Start simple (2-3 layers)
+    \item Width: 50-200 neurons typical
+    \item Add depth for complexity
+    \item Skip connections help
 \end{itemize}
 
 \textbf{Training:}
 \begin{itemize}
-    \item Backpropagation: Efficient gradient computation
-    \item Automatic differentiation: Exact derivatives
-    \item Optimization: Gradient descent and variants
+    \item Learning rate: 1e-3 to 1e-4
+    \item Use Adam optimizer
+    \item Batch normalization
+    \item Gradient clipping
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Debugging:}
+\begin{itemize}
+    \item Check gradient flow
+    \item Monitor activation statistics
+    \item Visualize loss landscape
+    \item Start with simple problems
+\end{itemize}
+
+\textbf{Common pitfalls:}
+\begin{itemize}
+    \item Vanishing/exploding gradients
+    \item Dead ReLUs
+    \item Overfitting
+    \item Poor initialization
+    \item Unbalanced data
+\end{itemize}
+
+\textbf{Tools:}
+\begin{itemize}
+    \item PyTorch, TensorFlow
+    \item JAX for scientific computing
+    \item DeepXDE for PINNs
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Key Takeaways}
+\begin{block}{Mathematical Foundations}
+\begin{itemize}
+    \item Weierstrass (1885) → UAT (1989): continuous functions are learnable
+    \item Neural networks are universal approximators in multiple function spaces
+    \item Density results provide theoretical guarantees
+\end{itemize}
+\end{block}
+
+\begin{block}{Building Blocks}
+\begin{itemize}
+    \item Nonlinearity is absolutely essential (XOR problem)
+    \item Hidden layers create new feature spaces
+    \item Activation functions enable complex decision boundaries
+\end{itemize}
+\end{block}
+
+\begin{block}{Training and Optimization}
+\begin{itemize}
+    \item Backpropagation = reverse mode automatic differentiation
+    \item Modern optimizers (Adam) handle complex landscapes
+    \item Regularization prevents overfitting
+\end{itemize}
+\end{block}
+
+\begin{block}{Architecture Design}
+\begin{itemize}
+    \item Depth provides exponential expressivity gains
+    \item Width controls approximation quality
+    \item Problem-specific design choices matter
+\end{itemize}
+\end{block}
+\end{frame}
+
+\begin{frame}{The Path Forward}
+\begin{center}
+\begin{tikzpicture}[scale=0.9]
+    % Historical
+    \node[draw, rectangle, fill=blue!20] (w) at (0,3) {Weierstrass (1885)};
+    \node[draw, rectangle, fill=blue!20] (u) at (4,3) {UAT (1989)};
+    \node[draw, rectangle, fill=green!20] (b) at (8,3) {Backprop (1986)};
+    
+    % Modern
+    \node[draw, rectangle, fill=yellow!20] (d) at (2,1) {Deep Learning};
+    \node[draw, rectangle, fill=yellow!20] (p) at (6,1) {PINNs};
+    \node[draw, rectangle, fill=yellow!20] (t) at (10,1) {Transformers};
+    
+    % Future
+    \node[draw, rectangle, fill=red!20] (s) at (4,-1) {Scientific ML};
+    \node[draw, rectangle, fill=red!20] (f) at (8,-1) {Foundation Models};
+    
+    % Connections
+    \draw[->] (w) -- (u);
+    \draw[->] (u) -- (b);
+    \draw[->] (u) -- (d);
+    \draw[->] (b) -- (d);
+    \draw[->] (d) -- (p);
+    \draw[->] (b) -- (t);
+    \draw[->] (d) -- (s);
+    \draw[->] (p) -- (s);
+    \draw[->] (t) -- (f);
+    \draw[->] (s) -- (f);
+\end{tikzpicture}
+\end{center}
+
+\vspace{0.5cm}
+
+\textbf{Current frontiers:}
+\begin{itemize}
+    \item Neural operators for PDEs
+    \item Geometric deep learning
+    \item Equivariant networks
+    \item Uncertainty quantification
+    \item Multi-scale methods
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Key Insights for SciML}
-\begin{enumerate}
-    \item \textbf{Continuous representation:} Unlike FD/FEM, neural networks provide continuous, differentiable functions
-    
-    \item \textbf{Universal approximation:} Theoretical guarantee that any continuous function can be approximated
-    
-    \item \textbf{Adaptive basis:} Networks learn where to place their basis functions
-    
-    \item \textbf{Automatic differentiation:} Exact derivatives for physics constraints
-    
-    \item \textbf{Depth matters:} Deep networks exponentially more efficient
-    
-    \item \textbf{Continuity requirement:} Discontinuities need special treatment
-\end{enumerate}
+\begin{frame}{Summary}
+\begin{center}
+\Large{We've journeyed from Weierstrass to modern deep learning}
+\end{center}
+
+\vspace{0.5cm}
+
+\textbf{Key insights:}
+\begin{itemize}
+    \item Neural networks provide a universal, flexible function approximation framework
+    \item Mathematical foundations (UAT) guarantee approximation capabilities
+    \item Nonlinearity + depth = expressivity
+    \item Automatic differentiation enables efficient training
+    \item Applications span from simple classification to solving PDEs
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{For Scientific ML:}
+\begin{itemize}
+    \item Mesh-free PDE solvers
+    \item Data-driven discovery
+    \item Multi-physics modeling
+    \item Uncertainty quantification
+\end{itemize}
+
+\vspace{0.5cm}
+
+\begin{center}
+\textbf{The universal approximation theorem tells us neural networks CAN work. \\
+Backpropagation tells us HOW to make them work.}
+\end{center}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\Huge{Questions?}
+
+\vspace{1cm}
+
+\large{Thank you!}
+
+\vspace{1cm}
+
+\normalsize{
+krishnak@utexas.edu \\
+\url{https://github.com/krishnakumar}
+}
+\end{center}
 \end{frame}
 
 \end{document}
