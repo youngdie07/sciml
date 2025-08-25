@@ -430,79 +430,6 @@ A single hidden layer neural network can approximate any continuous function to 
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Function Spaces: The Mathematical Setting}
-\begin{columns}
-\column{0.5\textwidth}
-\textbf{Banach Spaces:}
-\begin{itemize}
-    \item Complete normed vector spaces
-    \item $C([0,1])$ with $\|f\|_\infty = \max_x |f(x)|$
-    \item $L^p([0,1])$ with $\|f\|_p = \left(\int |f|^p\right)^{1/p}$
-\end{itemize}
-
-\textbf{Hilbert Spaces:}
-\begin{itemize}
-    \item Inner product spaces
-    \item $L^2([0,1])$ with $\langle f,g \rangle = \int fg$
-    \item Orthogonal projections
-    \item Energy minimization
-\end{itemize}
-
-\column{0.5\textwidth}
-\textbf{Density Results:}
-
-A set $S$ is \textit{dense} in $X$ if:
-$$\forall f \in X, \forall \epsilon > 0, \exists g \in S: \|f - g\| < \epsilon$$
-
-\vspace{0.5cm}
-
-Neural networks are dense in:
-\begin{itemize}
-    \item $C([0,1])$ - continuous functions
-    \item $L^p([0,1])$ - integrable functions
-    \item $H^1([0,1])$ - Sobolev spaces
-\end{itemize}
-
-\textbf{Implication:} Can approximate solutions to PDEs!
-\end{columns}
-\end{frame}
-
-\begin{frame}{The Continuity Requirement}
-\vspace{-1em}
-\begin{columns}
-\column{0.5\textwidth}
-\textbf{What UAT guarantees:}
-\begin{itemize}
-    \item Continuous functions \checkmark
-    \item Smooth functions \checkmark
-    \item Piecewise continuous \checkmark (away from jumps)
-\end{itemize}
-
-\textbf{What UAT doesn't guarantee:}
-\begin{itemize}
-    \item Discontinuous functions $\times$
-    \item Delta functions $\times$
-    \item Step functions $\times$ (pointwise)
-\end{itemize}
-
-\column{0.5\textwidth}
-\begin{figure}
-\centering
-\includegraphics[width=0.8\textwidth]{figs/step-function-discontinuity.png}
-\caption{Neural networks approximate discontinuities in $L^2$, not pointwise}
-\end{figure}
-\end{columns}
-
-\vspace{0.1em}
-
-\textbf{Practical implications:}
-\begin{itemize}
-    \item Shocks in fluid dynamics: approximate in weak sense
-    \item Material interfaces: use phase field methods
-    \item Classification boundaries: sigmoid approximation
-\end{itemize}
-\end{frame}
-
 %========================================================================================
 % PART III: BUILDING NEURAL NETWORKS
 %========================================================================================
@@ -632,78 +559,12 @@ w_j &\leftarrow w_j - \eta \frac{\partial \mathcal{L}}{\partial w_j}
 \begin{frame}{The Critical Limitation: Linear Models Fail}
 \begin{figure}
 \centering
-\includegraphics[width=0.8\textwidth]{figs/linear-network-failure.png}
+\includegraphics[width=0.6\textwidth]{figs/linear-network-failure.png}
 \caption{Linear models cannot approximate nonlinear functions like $\sin(\pi x)$}
 \end{figure}
 
 \textbf{Fundamental problem:} Composition of linear functions is still linear!
 $$f(x) = W_3(W_2(W_1 x)) = (W_3 W_2 W_1) x = W x$$
-\end{frame}
-
-\begin{frame}{The XOR Problem: Historical Crisis}
-\begin{columns}
-\column{0.5\textwidth}
-\textbf{XOR Truth Table:}
-\begin{center}
-\begin{tabular}{cc|c}
-$x_1$ & $x_2$ & XOR \\
-\hline
-0 & 0 & 0 \\
-0 & 1 & 1 \\
-1 & 0 & 1 \\
-1 & 1 & 0 \\
-\end{tabular}
-\end{center}
-
-\vspace{0.5cm}
-
-\textbf{The problem:}
-\begin{itemize}
-    \item No single line can separate the classes
-    \item Points (0,1) and (1,0): class 1
-    \item Points (0,0) and (1,1): class 0
-    \item Diagonally opposite points same class
-\end{itemize}
-
-\column{0.5\textwidth}
-\begin{figure}
-\centering
-\includegraphics[width=\textwidth]{figs/xor-problem.png}
-\caption{XOR problem: not linearly separable}
-\end{figure}
-\end{columns}
-
-\vspace{0.3cm}
-\textbf{Historical impact:} Minsky \& Papert (1969) → First AI Winter
-\end{frame}
-
-\begin{frame}[fragile]{XOR Implementation: Failure of Linear Model}
-\begin{lstlisting}[language=Python]
-import numpy as np
-import matplotlib.pyplot as plt
-
-# XOR dataset
-X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
-y = np.array([0, 1, 1, 0])
-
-# Train linear perceptron
-perceptron = LinearPerceptron(input_dim=2)
-perceptron.train(X, y, lr=0.1, epochs=1000)
-
-# Results after training:
-# The linear model achieves at best 50% accuracy
-# It can only correctly classify 2 out of 4 points
-
-# Visualization shows no linear boundary exists
-# that can separate XOR classes
-\end{lstlisting}
-
-\textbf{Result:} Linear model fails completely on XOR
-\begin{itemize}
-    \item Best accuracy: 50\% (random guessing!)
-    \item Cannot learn the pattern
-    \item Need nonlinearity
-\end{itemize}
 \end{frame}
 
 \begin{frame}{The Solution: Activation Functions}
@@ -729,7 +590,6 @@ perceptron.train(X, y, lr=0.1, epochs=1000)
 \caption{Without activation functions, deep networks collapse to linear models}
 \end{figure}
 
-\textbf{Mathematical proof:}
 \begin{align}
 \text{Without } \sigma: \quad & h_1 = W_1 x + b_1 \\
 & h_2 = W_2 h_1 + b_2 = W_2(W_1 x + b_1) + b_2 \\
@@ -737,6 +597,308 @@ perceptron.train(X, y, lr=0.1, epochs=1000)
 \end{align}
 
 Still just a linear transformation!
+\end{frame}
+
+
+\begin{frame}{Single Hidden Layer Networks}
+	\begin{columns}
+	\column{0.45\textwidth}
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.8\textwidth]{figs/single-layer-nn1.png}
+		\caption{Single hidden layer network with multiple neurons}
+	\end{figure}
+	\column{0.65\textwidth}
+	\textbf{Architecture:}
+	\begin{align}
+		h_i &= \sigma(w_i^T x + b_i) \quad i = 1, \ldots, M \\
+		y &= \sum_{i=1}^{M} v_i h_i + c
+	\end{align}
+	
+	\textbf{Capabilities:}
+	\begin{itemize}
+		\item Universal approximation with enough neurons
+		\item Each neuron adds a "feature" or "basis function"
+		\item Output is weighted combination of features
+	\end{itemize}
+			
+	\end{columns}
+\end{frame}
+
+
+\begin{frame}{Function Spaces: The Mathematical Setting}
+	\begin{columns}
+		\column{0.5\textwidth}
+		\textbf{Banach Spaces:}
+		\begin{itemize}
+			\item Complete normed vector spaces
+			\item $C([0,1])$ with $\|f\|_\infty = \max_x |f(x)|$
+			\item $L^p([0,1])$ with $\|f\|_p = \left(\int |f|^p\right)^{1/p}$
+		\end{itemize}
+		
+		\textbf{Hilbert Spaces:}
+		\begin{itemize}
+			\item Inner product spaces
+			\item $L^2([0,1])$ with $\langle f,g \rangle = \int fg$
+			\item Orthogonal projections
+			\item Energy minimization
+		\end{itemize}
+		
+		\column{0.5\textwidth}
+		\textbf{Density Results:}
+		
+		A set $S$ is \textit{dense} in $X$ if:
+		$$\forall f \in X, \forall \epsilon > 0, \exists g \in S: \|f - g\| < \epsilon$$
+		
+		\vspace{0.5cm}
+		
+		Neural networks are dense in:
+		\begin{itemize}
+			\item $C([0,1])$ - continuous functions
+			\item $L^p([0,1])$ - integrable functions
+			\item $H^1([0,1])$ - Sobolev spaces
+		\end{itemize}
+		
+		\textbf{Implication:} Can approximate solutions to PDEs!
+	\end{columns}
+\end{frame}
+
+
+
+\begin{frame}{Constructive Proof: Building Functions with ReLU}
+	\textbf{ReLU (Rectified Linear Unit):}
+	$$\ReLU(x) = \max(0, x)$$
+	
+	\textbf{Building blocks:}
+	\begin{align}
+		\text{Bump function: } & \ReLU(x-a) - \ReLU(x-b) \\
+		\text{Triangle: } & \ReLU(x) - 2\ReLU(x-1) + \ReLU(x-2) \\
+		\text{Step approx: } & \frac{1}{h}[\ReLU(x) - \ReLU(x-h)]
+	\end{align}
+	
+	\begin{figure}
+		\centering
+		% ReLU building blocks figure not available
+		\includegraphics[width=0.7\textwidth]{figs/relu-decomposition-sinpi.png}
+		\caption{Constructing complex functions from ReLU units}
+	\end{figure}
+\end{frame}
+
+\begin{frame}{ReLU Networks: Piecewise Linear Approximation}
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.85\textwidth]{figs/relu-decomposition-sinpi.png}
+		\caption{ReLU network approximating $\sin(\pi x)$ as piecewise linear function}
+	\end{figure}
+	
+	\textbf{Key insights:}
+	\begin{itemize}
+		\item Each ReLU creates a "kink" or breakpoint
+		\item $N$ neurons → up to $N$ linear pieces
+		\item Adaptive placement of breakpoints via training
+		\item Universal approximation through piecewise linear functions
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{The Role of Bias: Controlling Breakpoints}
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.8\textwidth]{figs/bias-breakpoints-detailed.png}
+		\caption{Bias parameters control where ReLU units activate}
+	\end{figure}
+	
+	\textbf{For neuron $h = \ReLU(wx + b)$:}
+	\begin{itemize}
+		\item Activates when $wx + b = 0$
+		\item Breakpoint at $x = -b/w$
+		\item Bias shifts the activation threshold
+		\item Network learns optimal breakpoint locations
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Proof Strategy: Hahn-Banach Argument}
+	\begin{columns}[t]
+		\column{0.35\textwidth}
+		\textbf{Strategy:}
+		\begin{enumerate}
+			\item Assume neural networks are NOT dense
+			\item Apply Hahn-Banach theorem
+			\item Find separating functional
+			\item Show functional must be zero
+			\item Reach contradiction
+		\end{enumerate}
+		
+		\column{0.65\textwidth}
+		\begin{figure}
+			\centering
+			\includegraphics[width=0.8\textwidth]{figs/contradiction-visualization.png}
+			\caption{Proof by contradiction using functional analysis}
+		\end{figure}
+	\end{columns}
+\end{frame}
+
+\begin{frame}{The Continuity Requirement}
+	\vspace{-1em}
+	\begin{columns}
+		\column{0.5\textwidth}
+		\textbf{What UAT guarantees:}
+		\begin{itemize}
+			\item Continuous functions \checkmark
+			\item Smooth functions \checkmark
+			\item Piecewise continuous \checkmark (away from jumps)
+		\end{itemize}
+		
+		\textbf{What UAT doesn't guarantee:}
+		\begin{itemize}
+			\item Discontinuous functions $\times$
+			\item Delta functions $\times$
+			\item Step functions $\times$ (pointwise)
+		\end{itemize}
+		
+		\column{0.5\textwidth}
+		\begin{figure}
+			\centering
+			\includegraphics[width=0.8\textwidth]{figs/step-function-discontinuity.png}
+			\caption{Neural networks approximate discontinuities in $L^2$, not pointwise}
+		\end{figure}
+	\end{columns}
+	
+	\vspace{0.1em}
+	
+	\textbf{Practical implications:}
+	\begin{itemize}
+		\item Shocks in fluid dynamics: approximate in weak sense
+		\item Material interfaces: use phase field methods
+		\item Classification boundaries: sigmoid approximation
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Which Activations Work? -- Requirements for UAT}
+	\begin{itemize}
+		\item Non-polynomial
+		\item Non-constant
+		\item Bounded (for some theorems)
+		\item Continuous (for some theorems)
+	\end{itemize}
+	
+	\vspace{0.5cm}
+	
+	\textbf{Common choices:}
+	\begin{columns}
+		\column{0.5\textwidth}
+		\textbf{Sigmoid:} $\sigma(x) = \frac{1}{1+e^{-x}}$
+		\begin{itemize}
+			\item Smooth, bounded
+			\item Vanishing gradients
+			\item Historical choice
+		\end{itemize}
+		
+		\textbf{Tanh:} $\tanh(x) = \frac{e^x - e^{-x}}{e^x + e^{-x}}$
+		\begin{itemize}
+			\item Zero-centered
+			\item Bounded [-1, 1]
+			\item Still saturates
+		\end{itemize}
+		
+		\column{0.5\textwidth}
+		\textbf{ReLU:} $\ReLU(x) = \max(0, x)$
+		\begin{itemize}
+			\item Simple, efficient
+			\item No saturation
+			\item Dead neurons problem
+		\end{itemize}
+		
+		\textbf{Modern variants:}
+		\begin{itemize}
+			\item Leaky ReLU: $\max(0.01x, x)$
+			\item ELU, SELU, Swish
+			\item GELU (Transformers)
+		\end{itemize}
+	\end{columns}
+\end{frame}
+
+\begin{frame}{Parabolic Activations Don't Work}
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.8\textwidth]{figs/parabolic-failure.png}
+		\caption{Polynomial activations fail: networks collapse to polynomials}
+	\end{figure}
+	
+	\textbf{Why $\sigma(x) = x^2$ fails:}
+	\begin{itemize}
+		\item Composition of polynomials is polynomial
+		\item Limited to polynomial approximation
+		\item No universal approximation property
+		\item Cannot represent arbitrary continuous functions
+	\end{itemize}
+\end{frame}
+
+
+
+\begin{frame}{The XOR Problem: Historical Crisis}
+	\begin{columns}
+		\column{0.5\textwidth}
+		\textbf{XOR Truth Table:}
+		\begin{center}
+			\begin{tabular}{cc|c}
+				$x_1$ & $x_2$ & XOR \\
+				\hline
+				0 & 0 & 0 \\
+				0 & 1 & 1 \\
+				1 & 0 & 1 \\
+				1 & 1 & 0 \\
+			\end{tabular}
+		\end{center}
+		
+		\vspace{0.5cm}
+		
+		\textbf{The problem:}
+		\begin{itemize}
+			\item No single line can separate the classes
+			\item Points (0,1) and (1,0): class 1
+			\item Points (0,0) and (1,1): class 0
+			\item Diagonally opposite points same class
+		\end{itemize}
+		
+		\column{0.5\textwidth}
+		\begin{figure}
+			\centering
+			\includegraphics[width=\textwidth]{figs/xor-problem.png}
+			\caption{XOR problem: not linearly separable}
+		\end{figure}
+	\end{columns}
+	
+	\vspace{0.3cm}
+	\textbf{Historical impact:} Minsky \& Papert (1969) → First AI Winter
+\end{frame}
+
+\begin{frame}[fragile]{XOR Implementation: Failure of Linear Model}
+	\begin{lstlisting}[language=Python]
+		import numpy as np
+		import matplotlib.pyplot as plt
+		
+		# XOR dataset
+		X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+		y = np.array([0, 1, 1, 0])
+		
+		# Train linear perceptron
+		perceptron = LinearPerceptron(input_dim=2)
+		perceptron.train(X, y, lr=0.1, epochs=1000)
+		
+		# Results after training:
+		# The linear model achieves at best 50% accuracy
+		# It can only correctly classify 2 out of 4 points
+		
+		# Visualization shows no linear boundary exists
+		# that can separate XOR classes
+	\end{lstlisting}
+	
+	\textbf{Result:} Linear model fails completely on XOR
+	\begin{itemize}
+		\item Best accuracy: 50\% (random guessing!)
+		\item Cannot learn the pattern
+		\item Need nonlinearity
+	\end{itemize}
 \end{frame}
 
 \begin{frame}{Multi-Layer Networks: Solving XOR}
@@ -830,26 +992,6 @@ class TwoLayerNetwork:
 \end{lstlisting}
 \end{frame}
 
-\begin{frame}{Single Hidden Layer Networks}
-\begin{figure}
-\centering
-\includegraphics[width=0.8\textwidth]{figs/single-layer-nn1.png}
-\caption{Single hidden layer network with multiple neurons}
-\end{figure}
-
-\textbf{Architecture:}
-\begin{align}
-h_i &= \sigma(w_i^T x + b_i) \quad i = 1, \ldots, M \\
-y &= \sum_{i=1}^{M} v_i h_i + c
-\end{align}
-
-\textbf{Capabilities:}
-\begin{itemize}
-    \item Universal approximation with enough neurons
-    \item Each neuron adds a "feature" or "basis function"
-    \item Output is weighted combination of features
-\end{itemize}
-\end{frame}
 
 \begin{frame}{Multi-Output Networks}
 \begin{figure}
@@ -1202,57 +1344,6 @@ $$\mathcal{L} = \lambda_1 \mathcal{L}_{data} + \lambda_2 \mathcal{L}_{PDE} + \la
 %========================================================================================
 \section{Part V: Architecture Design}
 
-\begin{frame}{Constructive Proof: Building Functions with ReLU}
-\textbf{ReLU (Rectified Linear Unit):}
-$$\ReLU(x) = \max(0, x)$$
-
-\textbf{Building blocks:}
-\begin{align}
-\text{Bump function: } & \ReLU(x-a) - \ReLU(x-b) \\
-\text{Triangle: } & \ReLU(x) - 2\ReLU(x-1) + \ReLU(x-2) \\
-\text{Step approx: } & \frac{1}{h}[\ReLU(x) - \ReLU(x-h)]
-\end{align}
-
-\begin{figure}
-\centering
-% ReLU building blocks figure not available
-\includegraphics[width=0.7\textwidth]{figs/relu-decomposition-sinpi.png}
-\caption{Constructing complex functions from ReLU units}
-\end{figure}
-\end{frame}
-
-\begin{frame}{ReLU Networks: Piecewise Linear Approximation}
-\begin{figure}
-\centering
-\includegraphics[width=0.85\textwidth]{figs/relu-decomposition-sinpi.png}
-\caption{ReLU network approximating $\sin(\pi x)$ as piecewise linear function}
-\end{figure}
-
-\textbf{Key insights:}
-\begin{itemize}
-    \item Each ReLU creates a "kink" or breakpoint
-    \item $N$ neurons → up to $N$ linear pieces
-    \item Adaptive placement of breakpoints via training
-    \item Universal approximation through piecewise linear functions
-\end{itemize}
-\end{frame}
-
-\begin{frame}{The Role of Bias: Controlling Breakpoints}
-\begin{figure}
-\centering
-\includegraphics[width=0.8\textwidth]{figs/bias-breakpoints-detailed.png}
-\caption{Bias parameters control where ReLU units activate}
-\end{figure}
-
-\textbf{For neuron $h = \ReLU(wx + b)$:}
-\begin{itemize}
-    \item Activates when $wx + b = 0$
-    \item Breakpoint at $x = -b/w$
-    \item Bias shifts the activation threshold
-    \item Network learns optimal breakpoint locations
-\end{itemize}
-\end{frame}
-
 \begin{frame}{Width vs Depth Trade-offs}
 \begin{figure}
 \centering
@@ -1349,86 +1440,7 @@ $$\ReLU(x) = \max(0, x)$$
 \end{columns}
 \end{frame}
 
-\begin{frame}{Proof Strategy: Hahn-Banach Argument}
-\begin{columns}[t]
-\column{0.35\textwidth}
-\textbf{Strategy:}
-\begin{enumerate}
-	\item Assume neural networks are NOT dense
-	\item Apply Hahn-Banach theorem
-	\item Find separating functional
-	\item Show functional must be zero
-	\item Reach contradiction
-\end{enumerate}
-	
-\column{0.65\textwidth}
-\begin{figure}
-\centering
-\includegraphics[width=0.8\textwidth]{figs/contradiction-visualization.png}
-\caption{Proof by contradiction using functional analysis}
-\end{figure}
-\end{columns}
-\end{frame}
 
-\begin{frame}{Which Activations Work? -- Requirements for UAT}
-\begin{itemize}
-    \item Non-polynomial
-    \item Non-constant
-    \item Bounded (for some theorems)
-    \item Continuous (for some theorems)
-\end{itemize}
-
-\vspace{0.5cm}
-
-\textbf{Common choices:}
-\begin{columns}
-\column{0.5\textwidth}
-\textbf{Sigmoid:} $\sigma(x) = \frac{1}{1+e^{-x}}$
-\begin{itemize}
-    \item Smooth, bounded
-    \item Vanishing gradients
-    \item Historical choice
-\end{itemize}
-
-\textbf{Tanh:} $\tanh(x) = \frac{e^x - e^{-x}}{e^x + e^{-x}}$
-\begin{itemize}
-    \item Zero-centered
-    \item Bounded [-1, 1]
-    \item Still saturates
-\end{itemize}
-
-\column{0.5\textwidth}
-\textbf{ReLU:} $\ReLU(x) = \max(0, x)$
-\begin{itemize}
-    \item Simple, efficient
-    \item No saturation
-    \item Dead neurons problem
-\end{itemize}
-
-\textbf{Modern variants:}
-\begin{itemize}
-    \item Leaky ReLU: $\max(0.01x, x)$
-    \item ELU, SELU, Swish
-    \item GELU (Transformers)
-\end{itemize}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Parabolic Activations Don't Work}
-\begin{figure}
-\centering
-\includegraphics[width=0.8\textwidth]{figs/parabolic-failure.png}
-\caption{Polynomial activations fail: networks collapse to polynomials}
-\end{figure}
-
-\textbf{Why $\sigma(x) = x^2$ fails:}
-\begin{itemize}
-    \item Composition of polynomials is polynomial
-    \item Limited to polynomial approximation
-    \item No universal approximation property
-    \item Cannot represent arbitrary continuous functions
-\end{itemize}
-\end{frame}
 
 \begin{frame}{Sobolev Spaces and Derivatives}
 \begin{columns}
@@ -1560,6 +1572,11 @@ $$\mathcal{L} = \underbrace{\lambda_1 \|\mathcal{N}[u_\theta] - f\|^2}_{\text{PD
     \item Activation functions enable complex decision boundaries
 \end{itemize}
 \end{block}
+
+\end{frame}
+
+
+\begin{frame}{Key Takeaways}
 
 \begin{block}{Training and Optimization}
 \begin{itemize}
