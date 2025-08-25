@@ -277,29 +277,6 @@ $$\sup_{x \in [a,b]} |f(x) - P(x)| < \epsilon$$
 \end{columns}
 \end{frame}
 
-\begin{frame}{Convergence Analysis}
-\begin{columns}
-\column{0.5\textwidth}
-\textbf{Polynomial convergence:}
-\begin{itemize}
-    \item Degree 3: Error $\approx 0.05$
-    \item Degree 5: Error $\approx 0.008$
-    \item Degree 7: Error $\approx 0.001$
-    \item Degree 9: Error $\approx 0.0001$
-\end{itemize}
-
-\textbf{Convergence rate:}
-For $f \in C^k[0,1]$:
-$$\|f - P_n\|_\infty = O(n^{-k})$$
-
-\column{0.5\textwidth}
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{figs/polynomial-convergence.png}
-    \caption{Exponential convergence for smooth functions}
-\end{figure}
-\end{columns}
-\end{frame}
 
 \begin{frame}{Bernstein Polynomials: Constructive Proof}
 \begin{columns}
@@ -324,6 +301,24 @@ $$B_n[f](x) = \sum_{k=0}^{n} f\left(\frac{k}{n}\right) B_{k,n}(x)$$
     \caption{Bernstein polynomial basis functions}
 \end{figure}
 \end{columns}
+\end{frame}
+
+
+\begin{frame}{Convergence Analysis}
+	\begin{columns}
+		\column{0.35\textwidth}
+		
+		\textbf{Convergence rate:}
+		For $f \in C^n[0,1]$:
+		$$\|f - P_n\|_\infty = O(1/\sqrt{n})$$
+		
+		\column{0.65\textwidth}
+		\begin{figure}
+			\centering
+			\includegraphics[width=\textwidth]{figs/polynomial-convergence.png}
+			\caption{Exponential convergence for smooth functions}
+		\end{figure}
+	\end{columns}
 \end{frame}
 
 \begin{frame}{Polynomial vs Neural Network Comparison}
@@ -381,9 +376,9 @@ $$B_n[f](x) = \sum_{k=0}^{n} f\left(\frac{k}{n}\right) B_{k,n}(x)$$
 \begin{frame}{From Weierstrass to Universal Approximation}
 \begin{center}
 \begin{tikzpicture}[scale=0.8]
-    \node[draw, rectangle] (w) at (0,0) {Weierstrass (1885)};
+    \node[draw, rectangle] (w) at (-2,0) {Weierstrass (1885)};
     \node[draw, rectangle] (s) at (4,0) {Stone-Weierstrass (1937)};
-    \node[draw, rectangle] (k) at (8,0) {Kolmogorov (1957)};
+    \node[draw, rectangle] (k) at (10,0) {Kolmogorov (1957)};
     \node[draw, rectangle] (c) at (2,-2) {Cybenko (1989)};
     \node[draw, rectangle] (h) at (6,-2) {Hornik (1991)};
     
