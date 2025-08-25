@@ -220,16 +220,16 @@ $$u(x) = x(1-x)$$
 \begin{frame}{Historical Perspective: From Polynomials to Neural Networks}
 \begin{center}
 \begin{tikzpicture}[scale=0.8]
-    \node[draw, rectangle] (w) at (-2,0) {Weierstrass (1885)};
-    \node[draw, rectangle] (s) at (4,0) {Stone-Weierstrass (1937)};
-    \node[draw, rectangle] (k) at (10,0) {Kolmogorov (1957)};
-    \node[draw, rectangle] (c) at (2,-2) {Cybenko (1989)};
-    \node[draw, rectangle] (h) at (6,-2) {Hornik (1991)};
-    
-    \draw[->] (w) -- (s) node[midway,above] {generalize};
-    \draw[->] (s) -- (k) node[midway,above] {2-layer};
-    \draw[->] (s) -- (c) node[midway,right] {neural};
-    \draw[->] (c) -- (h) node[midway,below] {any activation};
+	\node[draw=blue!70, rectangle, fill=blue!20, text=blue!80, thick] (w) at (-2,0) {Weierstrass (1885)};
+	\node[draw=green!70, rectangle, fill=green!20, text=green!80, thick] (s) at (4,0) {Stone-Weierstrass (1937)};
+	\node[draw=orange!70, rectangle, fill=orange!20, text=orange!80, thick] (k) at (10,0) {Kolmogorov (1957)};
+	\node[draw=red!70, rectangle, fill=red!20, text=red!80, thick] (c) at (2,-2) {Cybenko (1989)};
+	\node[draw=purple!70, rectangle, fill=purple!20, text=purple!80, thick] (h) at (6,-2) {Hornik (1991)};
+	
+	\draw[->, thick, color=blue!60] (w) -- (s) node[midway,above,color=blue!80] {generalize};
+	\draw[->, thick, color=green!60] (s) -- (k) node[midway,above,color=green!80] {2-layer};
+	\draw[->, thick, color=teal!60] (s) -- (c) node[midway,right,color=teal!80] {neural};
+	\draw[->, thick, color=red!60] (c) -- (h) node[midway,below,color=red!80] {any activation};
 \end{tikzpicture}
 \end{center}
 
@@ -291,7 +291,7 @@ $$B_n[f](x) = \sum_{k=0}^{n} f\left(\frac{k}{n}\right) \binom{n}{k} x^k (1-x)^{n
 
 \begin{frame}{Bernstein Polynomials: Constructive Proof}
 \begin{columns}
-\column{0.5\textwidth}
+\column{0.4\textwidth}
 \textbf{Bernstein basis:}
 $$B_{k,n}(x) = \binom{n}{k} x^k (1-x)^{n-k}$$
 
@@ -306,7 +306,7 @@ $$B_n[f](x) = \sum_{k=0}^{n} f\left(\frac{k}{n}\right) B_{k,n}(x)$$
     \item Uniform convergence
 \end{itemize}
 
-\column{0.5\textwidth}
+\column{0.6\textwidth}
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{figs/bernstein-approximation.png}
@@ -339,15 +339,16 @@ Exponential convergence for analytic functions
     \centering
     \includegraphics[width=0.9\textwidth]{figs/polynomial-vs-nn-comparison.png}
 \end{figure}
+\end{frame}
 
-\textbf{Key differences:}
+\begin{frame}{Polynomial vs Neural Network: Key differences}
 \begin{columns}
 \column{0.5\textwidth}
 \textbf{Polynomials:}
 \begin{itemize}
     \item Global basis functions
     \item Fixed structure
-    \item Runge phenomenon
+    \item Runge phenomenon [Oscillations at the boundaries]
     \item Poor for high dimensions
 \end{itemize}
 
@@ -467,6 +468,7 @@ Neural networks are dense in:
 \end{frame}
 
 \begin{frame}{The Continuity Requirement}
+\vspace{-1em}
 \begin{columns}
 \column{0.5\textwidth}
 \textbf{What UAT guarantees:}
@@ -486,13 +488,12 @@ Neural networks are dense in:
 \column{0.5\textwidth}
 \begin{figure}
 \centering
-% \includegraphics[width=\textwidth]{figs/discontinuous-challenge.png}
-\includegraphics[width=\textwidth]{figs/linear-network-failure.png}
+\includegraphics[width=0.8\textwidth]{figs/step-function-discontinuity.png}
 \caption{Neural networks approximate discontinuities in $L^2$, not pointwise}
 \end{figure}
 \end{columns}
 
-\vspace{0.3cm}
+\vspace{0.1em}
 
 \textbf{Practical implications:}
 \begin{itemize}
@@ -625,13 +626,7 @@ w_j &\leftarrow w_j - \eta \frac{\partial \mathcal{L}}{\partial w_j}
 \caption{Linear perceptron successfully classifies linearly separable data}
 \end{figure}
 
-\textbf{Success cases:}
-\begin{itemize}
-    \item AND gate
-    \item OR gate
-    \item Simple classification problems
-    \item Linear regression
-\end{itemize}
+\textbf{Success cases:} Simple classification problems and  Linear regression
 \end{frame}
 
 \begin{frame}{The Critical Limitation: Linear Models Fail}
@@ -714,7 +709,7 @@ perceptron.train(X, y, lr=0.1, epochs=1000)
 \begin{frame}{The Solution: Activation Functions}
 \begin{figure}
 \centering
-\includegraphics[width=0.9\textwidth]{figs/activation-functions.png}
+\includegraphics[width=0.6\textwidth]{figs/activation-functions.png}
 \caption{Common activation functions and their derivatives}
 \end{figure}
 
@@ -730,7 +725,7 @@ perceptron.train(X, y, lr=0.1, epochs=1000)
 \begin{frame}{Why Nonlinearity Matters}
 \begin{figure}
 \centering
-\includegraphics[width=0.8\textwidth]{figs/why-activation.png}
+\includegraphics[width=0.6\textwidth]{figs/why-activation.png}
 \caption{Without activation functions, deep networks collapse to linear models}
 \end{figure}
 
@@ -1010,25 +1005,25 @@ Decompose into elementary ops, apply chain rule
 \end{align}
 \end{frame}
 
-\begin{frame}{Backpropagation: Mathematical Details}
-\textbf{Forward Pass:}
-\begin{align}
+\begin{frame}{Backpropagation: Mathematical Details of Forward Pass}
+\begin{align*}
 z^{(1)} &= W^{(1)} x + b^{(1)} \\
 a^{(1)} &= \sigma(z^{(1)}) \\
 z^{(2)} &= W^{(2)} a^{(1)} + b^{(2)} \\
 \hat{y} &= \sigma(z^{(2)}) \\
 \mathcal{L} &= \frac{1}{2}\|\hat{y} - y\|^2
-\end{align}
+\end{align*}
+\end{frame}
 
-\textbf{Backward Pass:}
-\begin{align}
+\begin{frame}{Backpropagation: Mathematical Details of Backward Pass}
+\begin{align*}
 \delta^{(2)} &= (\hat{y} - y) \odot \sigma'(z^{(2)}) \\
 \nabla_{W^{(2)}} \mathcal{L} &= \delta^{(2)} (a^{(1)})^T \\
 \nabla_{b^{(2)}} \mathcal{L} &= \delta^{(2)} \\
 \delta^{(1)} &= (W^{(2)})^T \delta^{(2)} \odot \sigma'(z^{(1)}) \\
 \nabla_{W^{(1)}} \mathcal{L} &= \delta^{(1)} x^T \\
 \nabla_{b^{(1)}} \mathcal{L} &= \delta^{(1)}
-\end{align}
+\end{align*}
 \end{frame}
 
 \begin{frame}[fragile]{Backpropagation Implementation}
@@ -1161,7 +1156,7 @@ $$\mathcal{L} = \lambda_1 \mathcal{L}_{data} + \lambda_2 \mathcal{L}_{PDE} + \la
 \begin{frame}{Training Challenges: Overfitting}
 \begin{figure}
 \centering
-\includegraphics[width=0.8\textwidth]{figs/training-validation-fit.png}
+\includegraphics[width=0.6\textwidth]{figs/training-validation-fit.png}
 \caption{Overfitting: model memorizes training data, fails to generalize}
 \end{figure}
 
@@ -1289,7 +1284,7 @@ $$\ReLU(x) = \max(0, x)$$
 \begin{frame}{Network Architecture Comparison}
 \begin{figure}
 \centering
-\includegraphics[width=0.95\textwidth]{figs/network-architectures-transparent.png}
+\includegraphics[width=0.65\textwidth]{figs/network-architectures-transparent.png}
 \end{figure}
 
 \begin{itemize}
@@ -1355,7 +1350,7 @@ $$\ReLU(x) = \max(0, x)$$
 \end{frame}
 
 \begin{frame}{Proof Strategy: Hahn-Banach Argument}
-\begin{columns}
+\begin{columns}[t]
 \column{0.35\textwidth}
 \textbf{Strategy:}
 \begin{enumerate}
@@ -1369,14 +1364,13 @@ $$\ReLU(x) = \max(0, x)$$
 \column{0.65\textwidth}
 \begin{figure}
 \centering
-\includegraphics[width=0.5\textwidth]{figs/contradiction-visualization.png}
+\includegraphics[width=0.8\textwidth]{figs/contradiction-visualization.png}
 \caption{Proof by contradiction using functional analysis}
 \end{figure}
 \end{columns}
 \end{frame}
 
-\begin{frame}{Which Activations Work?}
-\textbf{Requirements for universal approximation:}
+\begin{frame}{Which Activations Work? -- Requirements for UAT}
 \begin{itemize}
     \item Non-polynomial
     \item Non-constant

@@ -67,8 +67,8 @@ def generate_sigmoid_approximation(target_func, x_range, num_units):
     return np.vectorize(approx)(x_range)
 
 def generate_parabolic_approximation(target_func, x_range, num_units):
-    """Generate parabolic approximation - from uat-demo.md
-    This attempts to create localized bumps with parabolas, which generally fails
+    """Generate parabolic approximation - from uat.md JavaScript code
+    This attempts to create localized bumps with parabolas using 4t(1-t) formula
     """
     def approx(x):
         result = 0
@@ -79,14 +79,13 @@ def generate_parabolic_approximation(target_func, x_range, num_units):
             width = right - left
             height = target_func(center)
             
-            # Attempt to create a localized "bump" with a parabola
-            # This uses a Gaussian-like window: exp(-(x-center)^2/width^2)
-            dist = (x - center) / width
-            # Create inverted parabola centered at 'center' with finite support
-            if abs(dist) < 1:
-                # Inverted parabola that goes to 0 at edges
-                bump = 1 - dist * dist
-                result += height * bump
+            # Try to create a "bump" using parabola - from uat.md line 738-741
+            # Parabola that's zero at boundaries and peaks at center
+            if x >= left and x <= right:
+                t = (x - left) / width  # Normalize to [0,1]
+                # Parabola: 4t(1-t) peaks at t=0.5 with value 1
+                parabolaBump = 4 * t * (1 - t)
+                result += height * parabolaBump
         return result
     
     return np.vectorize(approx)(x_range)
@@ -94,13 +93,24 @@ def generate_parabolic_approximation(target_func, x_range, num_units):
 def generate_parabolic_failure_figure():
     """Generate figure showing parabolic success on sine but failure on step"""
     
-    # Target functions
+    # Target functions - matching uat.md exactly
     def sine_pi(x):
         return np.sin(np.pi * x)
     
+    def sine_2pi(x):
+        return np.sin(2 * np.pi * x)
+    
     def step_function(x):
-        # Smooth step using tanh for better visualization
-        return 0.5 * (1 + np.tanh(10 * (x - 0.5)))
+        # Smooth step using tanh for continuity - from uat.md line 658-660
+        steepness = 50
+        return 0.5 * np.tanh(steepness * (x - 0.3)) - 0.5 * np.tanh(steepness * (x - 0.7))
+    
+    def sawtooth(x):
+        # Triangle wave (continuous sawtooth) - from uat.md line 663-668
+        period = 1
+        t = x / period
+        phase = t - np.floor(t)
+        return np.where(phase < 0.5, 4 * phase - 1, 3 - 4 * phase)
     
     # Create figure with 2 rows, 3 columns
     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
@@ -144,10 +154,10 @@ def generate_parabolic_failure_figure():
     ax.text(0.05, 0.05, f'MSE: {mse_sigmoid_sin:.4f}', transform=ax.transAxes,
             bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.5))
     
-    # Column 3: Parabolic approximation - special case with 2 units for sine
+    # Column 3: Parabolic approximation - special case with 5 units for sine
     ax = axes[0, 2]
-    # For sine, use just 2 parabolic units (one for each half cycle)
-    num_units_parab = 2
+    # For sin(πx), parabolic can approximate reasonably well with right number of units
+    num_units_parab = 5
     y_parabolic = generate_parabolic_approximation(target_func, x_range, num_units_parab)
     ax.plot(x_range, y_true, 'k-', linewidth=2, label='sin(πx)', alpha=0.7)
     ax.plot(x_range, y_parabolic, color=colors['warning'], linewidth=2, label=f'Parabolic ({num_units_parab} units)')
@@ -161,7 +171,7 @@ def generate_parabolic_failure_figure():
     mse_parabolic_sin = np.mean((y_parabolic - y_true)**2)
     ax.text(0.05, 0.05, f'MSE: {mse_parabolic_sin:.4f}', transform=ax.transAxes,
             bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.5))
-    ax.text(0.5, -0.25, '✓ Works by coincidence!', transform=ax.transAxes,
+    ax.text(0.5, -0.25, '✓ Works for this specific function', transform=ax.transAxes,
             ha='center', color=colors['success'], fontweight='bold')
     
     # Row 2: Step function - Where parabolic fails
@@ -226,8 +236,8 @@ def generate_parabolic_failure_figure():
     
     # Add text annotation explaining the results
     fig.text(0.5, 0.48, 
-            'Parabolic (x²) works for sin(πx) by coincidence (2 units = 2 half-cycles) but fails for general functions.\n' +
-            'ReLU and Sigmoid are universal approximators - they work for ALL continuous functions.',
+            'Parabolic activation (4t(1-t) bumps) may work for specific smooth functions like sin(πx)\n' +
+            'but fails for discontinuous or sharp transitions. ReLU and Sigmoid are universal approximators.',
             ha='center', fontsize=11, style='italic',
             bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.7))
     
