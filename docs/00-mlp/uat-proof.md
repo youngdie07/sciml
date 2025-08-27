@@ -1,4 +1,4 @@
-# The Universal Approximation Theorem 
+# The Universal Approximation Theorem
 
 ## The Big Question
 
@@ -10,7 +10,7 @@ The Universal Approximation Theorem is the mathematical reason why neural networ
 
 ## Starting Simple: The Intuition
 
-Let's forget about neural networks for a moment and think about a simpler question: **Can you approximate any curve using just straight line segments?**
+Let's forget about neural networks for a moment and think about a simpler question: Can you approximate any curve using just straight line segments?
 
 Obviously yes! Just use more and more line segments. The more segments you use, the closer you get to the original curve. This is basically how computer graphics work - smooth curves are really just lots of tiny straight lines.
 
@@ -18,324 +18,293 @@ Now here's the key insight: **What if instead of straight lines, we used a diffe
 
 ## The Magic Building Block: The Sigmoid
 
-Neural networks use something called a **sigmoid function**. It looks like this:
+Neural networks use something called a sigmoid function. The mathematical form is:
 
-```
-    1 |      ╭─────
-      |     ╱
-      |    ╱
-    0 |___╱________
-           0
-```
+$$\sigma(x) = \frac{1}{1 + e^{-x}}$$
 
-It's like a smooth staircase - it starts at 0, then smoothly transitions to 1. 
+It's a smooth, S-shaped curve that transitions from 0 to 1.
 
 But here's where it gets interesting. What if we:
-1. **Stretch it**: Make the transition sharper or gentler
-2. **Shift it**: Move it left or right  
-3. **Scale it**: Make it taller or shorter
-4. **Add them up**: Combine multiple shifted, stretched, scaled versions
+- **Stretch it**: Make the transition sharper or gentler
+- **Shift it**: Move it left or right  
+- **Scale it**: Make it taller or shorter
+- **Add them up**: Combine multiple shifted, stretched, scaled versions
 
-## The Approximation Game
-
-Let's say you want to approximate this bumpy function:
-
-```
-      ╭╮    ╭╮
-     ╱  ╲  ╱  ╲
-____╱    ╲╱    ╲____
-```
-
-**Step 1**: Start with one sigmoid
-- Place it under the first bump
-- It's too smooth and in the wrong place
-
-**Step 2**: Add a second sigmoid  
-- Shift it to line up with the first peak
-- Now you have two smooth steps
-
-**Step 3**: Add more sigmoids with different shifts and scales
-- Some positive (pointing up)
-- Some negative (pointing down)
-- Each one corrects the errors from the previous ones
-
-**Step 4**: Keep adding until it's as close as you want
-
-The crazy thing? **This always works!** No matter what continuous function you throw at it, you can always approximate it arbitrarily closely using enough sigmoids.
-
-## Why This Isn't Obvious
-
-You might think: "Of course you can approximate anything if you use enough pieces!" But that's not necessarily true.
-
-For example, what if we only allowed ourselves to use **parabolas** (x²) as building blocks? Could we approximate a zigzag function? What about using only **sine waves**? 
-
-It turns out some building blocks are much more powerful than others. Sigmoids happen to be incredibly powerful - they're **universal approximators**.
+This always works! No matter what continuous function you throw at it, you can always approximate it arbitrarily closely using enough sigmoids.
 
 ## The Neural Network Connection
 
-Now here's where it gets beautiful. A neural network layer does exactly this sigmoid combination:
+Now here's where it gets beautiful. A neural network layer does exactly this sigmoid combination.
 
-**One neuron**: Takes inputs (x₁, x₂, ...), computes w₁x₁ + w₂x₂ + ... + b, then applies sigmoid
+- **One neuron**: Takes inputs $(x)$, computes $w \cdot x + b$, then applies a sigmoid function $\sigma$.
+- **Multiple neurons**: Each neuron creates its own shifted, scaled sigmoid.
+- **The output**: A weighted sum of all these sigmoids.
 
-**Multiple neurons**: Each neuron creates its own shifted, scaled sigmoid
+A neural network with one hidden layer is described by the function:
 
-**The output**: A weighted sum of all these sigmoids
+$$N(x) = \sum_{i=1}^{n} \alpha_i \sigma(w_i \cdot x + b_i)$$
 
 So a neural network is literally just:
-- Taking your input
-- Creating a bunch of different sigmoid "building blocks" 
-- Combining them to approximate whatever function you want
+1. Taking your input
+2. Creating a bunch of different sigmoid "building blocks"
+3. Combining them to approximate whatever function you want
 
-## The Banach Space Connection (For the Math Lovers)
+## Hyperplane Representation & Activation Functions
+
+### Single Hyperplane
+
+Each hidden unit $j$ creates a hyperplane $H_j$:
+$H_j = \{x \in \mathbb{R}^d : w_j \cdot x + b_j = 0\}$
+
+This divides space into two halfspaces:
+- **Positive side**: $\{x : w_j \cdot x + b_j > 0\}$
+- **Negative side**: $\{x : w_j \cdot x + b_j < 0\}$
+
+### Activation Functions as Indicators
+
+**ReLU (Hard Transition):**
+$\text{ReLU}(w \cdot x + b) = \max(0, w \cdot x + b) = \begin{cases}
+ w \cdot x + b & \text{if } w \cdot x + b > 0 \text{ (positive side)} \\
+0 & \text{if } w \cdot x + b \leq 0 \text{ (negative side)}
+\end{cases}$
+
+**Sigmoid (Soft Transition):**
+$\sigma(w \cdot x + b) = \frac{1}{1 + e^{-(w \cdot x + b)}} \approx \begin{cases}
+\approx 1 & \text{if } w \cdot x + b \gg 0 \text{ (positive side)} \\
+\approx 0 & \text{if } w \cdot x + b \ll 0 \text{ (negative side)}
+\end{cases}$
+
+### Creating Regions by Intersection
+
+**Example in 2D:**
+$R_1 = H_1^+ \cap H_2^- \cap H_3^+$
+$= \{x : w_1 \cdot x + b_1 \geq 0\} \cap \{x : w_2 \cdot x + b_2 < 0\} \cap \{x : w_3 \cdot x + b_3 \geq 0\}$
+
+**Indicator Function for Region $R_1$:**
+$I_{R_1}(x) = \sigma(w_1 \cdot x + b_1) \cdot (1-\sigma(w_2 \cdot x + b_2)) \cdot \sigma(w_3 \cdot x + b_3)$
+
+This equals $\approx 1$ inside $R_1$ and $\approx 0$ everywhere else.
+
+**Concrete Example:**
+Let's say we want the region where $x_1 > 0$ AND $x_2 < 1$:
+- Hyperplane 1: $x_1 = 0 \Rightarrow$ use $\sigma(x_1)$
+- Hyperplane 2: $x_2 = 1 \Rightarrow$ use $(1 - \sigma(x_2 - 1))$
+
+Indicator: $I(x) = \sigma(x_1) \cdot (1 - \sigma(x_2 - 1))$
+
+**Testing points:**
+- $x = (0.5, 0.5)$: $\sigma(0.5) \cdot (1-\sigma(-0.5)) \approx 0.62 \cdot 0.62 \approx 0.38$ ✓
+- $x = (-1, 0.5)$: $\sigma(-1) \cdot (1-\sigma(-0.5)) \approx 0.27 \cdot 0.62 \approx 0.17$ ✗  
+- $x = (0.5, 2)$: $\sigma(0.5) \cdot (1-\sigma(1)) \approx 0.62 \cdot 0.27 \approx 0.17$ ✗
+
+The neural network with $n$ units:
+$N_n(x) = \sum_{i=1}^n \alpha_i \sigma(w_i \cdot x + b_i)$
+
+## What is C(K) and Density?
+
+### The Function Space C(K)
+
+$C(K) = \{f : K \to \mathbb{R} \mid f \text{ is continuous}\}$
+
+**What this means:**
+- $K$ is our domain (e.g., $K = [0,1]$ or $K = [0,1]^2$)
+- $K$ must be **compact** = closed + bounded (no infinite regions, includes boundary)  
+- $C(K)$ contains ALL continuous functions from $K$ to real numbers
+
+**Examples of functions in C(K) when $K = [0,1]$:**
+- $f(x) = x^2$
+- $f(x) = \sin(\pi x)$
+- $f(x) = e^x$ 
+- $f(x) = $ any continuous function!
+
+### Dense Property of Neural Networks
+
+**Definition of Dense:**
+A set $A$ is **dense** in space $B$ if:
+$\forall f \in B, \forall \varepsilon > 0, \exists g \in A \text{ such that } \|f - g\| < \varepsilon$
+
+**UAT says:** Neural networks are **dense** in $C(K)$
+
+Your intuition is correct! "No gaps or holes" means:
+- Pick ANY continuous function $f \in C(K)$
+- Pick ANY accuracy level $\varepsilon > 0$
+- There EXISTS a neural network within $\varepsilon$ of $f$
+- You can get arbitrarily close to $f$ (no unreachable functions)
+
+#### What does dense mean?
+
+Rational numbers ARE dense in the real line - meaning you actually CAN get arbitrarily close to π (or any irrational number) using rational numbers. Between any two real numbers, there are infinitely many rational numbers.
+
+For example, you can approximate $\pi = 3.14159\ldots$ with rationals like:
+- $3/1 = 3$
+- $22/7 \approx 3.142857\ldots$
+- $355/113 \approx 3.1415929\ldots$
+- $103993/33102 \approx 3.1415926530\ldots$
+
+## The Formal Mathematical Machinery
 
 Now, if you want the formal mathematical machinery:
 
-**What's a Banach Space?** Think of it as a "complete" space of functions where you can:
+### What's a Banach Space?
+
+Think of it as a "complete" space of functions where you can:
 - Measure distances between functions (using a "norm")
-- Take limits of sequences of functions
+- Take limits of sequences of functions  
 - Know that these limits stay in your space
 
-**C([0,1])** - the space of continuous functions on [0,1] - is a Banach space using the "supremum norm":
-||f||∞ = max |f(x)| for x in [0,1]
+$C(K)$ - the space of continuous functions on a compact set $K$ - is a Banach space using the "supremum norm":
+
+$\|f\|_\infty = \sup_{x \in K} |f(x)|$
 
 This norm measures the "maximum height" of the function.
 
-**Dense subset**: A collection of functions is "dense" if you can get arbitrarily close to ANY continuous function using combinations from your collection.
+### Dense Subset
 
-**The theorem**: The set of all possible neural network functions (finite combinations of sigmoids) is dense in C([0,1]).
+A collection of functions is "dense" if you can get arbitrarily close to ANY continuous function using combinations from your collection.
 
-Translation: **No matter what continuous function you pick, neural networks can get arbitrarily close to it.**
+**The theorem**: The set of all possible neural network functions (finite combinations of sigmoids) is dense in $C(K)$.
 
-## The Proof Intuition (No Heavy Math)
+**Translation**: No matter what continuous function you pick, neural networks can get arbitrarily close to it.
 
-The proof has this beautiful idea:
+## Explaining Density with Rational Numbers
 
-1. **Characteristic functions**: You can approximate "step functions" (functions that jump from 0 to 1) using very steep sigmoids
+The UAT says that neural networks are like rational numbers for the space of continuous functions. Just as rational numbers are dense in the real numbers (you can get arbitrarily close to any real number using fractions), neural networks are dense in $C(K)$ (you can get arbitrarily close to any continuous function using neural networks).
 
-2. **Building blocks**: These step functions can be combined to create any "simple" function (like constants on intervals)
+There are no "gaps" in the rational numbers that an irrational number could hide in, and similarly, there are no "gaps" in neural network approximations that a continuous function could hide in.
 
-3. **Density**: These simple functions are dense in continuous functions (any continuous function can be approximated by simple step-wise functions)
+## Explaining Compactness
 
-4. **Composition**: Since sigmoids → steps → simple → continuous, sigmoids can approximate continuous functions
+In the context of the UAT, we are talking about functions on a compact set $K$. A compact set is one that is both closed (includes its boundaries) and bounded (does not go to infinity). For example, the interval $[0,1]$ is compact, while the set of all positive numbers $(0,\infty)$ is not. This condition ensures that the function doesn't have wild, unapproximable behavior at the edges or at infinity.
 
-## Why This Matters
+## The Proof by Contradiction
 
-This theorem tells us:
-- **Neural networks aren't magic** - they're universal function approximators, just like polynomials (Weierstrass theorem)
-- **The architecture makes sense** - the sigmoid+linear combination structure is mathematically powerful
-- **But it doesn't solve everything** - the theorem doesn't tell us how to FIND the right weights efficiently
-
-## The Catch
-
-Here's what the theorem DOESN'T guarantee:
-- **How many neurons you need** (could be billions!)
-- **How to find the right weights** (that's what training algorithms try to solve)
-- **How well it generalizes** (approximating your training data vs. real-world performance)
-
-## Now Let's Actually PROVE It (By Contradiction)
-
-Okay, so we've built the intuition. But how do we actually PROVE that neural networks can approximate any continuous function? Let's use one of the most elegant proof techniques in mathematics: **proof by contradiction**.
+The most elegant way to prove the UAT is by contradiction.
 
 ### The Setup: Assume the Opposite
 
-Let's assume, for the sake of argument, that neural networks are NOT universal approximators. 
+Let's assume, for the sake of argument, that neural networks are NOT universal approximators. Specifically, let's suppose there's some continuous function $f$ that neural networks just can't get close to. No matter how many neurons you use, no matter how you adjust the weights, you're always at least distance $\epsilon > 0$ away from $f$.
 
-Specifically, let's suppose there's some continuous function `f` that neural networks just can't get close to. No matter how many neurons you use, no matter how you adjust the weights, you're always at least distance `ε > 0` away from `f`.
+In math terms: There's some $f$ and some $\epsilon > 0$ such that for ANY neural network $N$, we have:
 
-In math terms: There's some `f` and some `ε > 0` such that for ANY neural network `N`, we have:
-```
-||f - N||∞ ≥ ε
-```
+$$\|f - N\|_\infty \geq \epsilon$$
 
-This means there's a "no-man's land" around `f` - a forbidden zone that neural networks can never enter.
+This means there's a "no-man's land" around $f$ - a forbidden zone that neural networks can never enter.
 
-### The Key Insight: What Does This "Gap" Actually Mean?
+### The Key Insight: The Function Detector
 
-Here's where it gets clever. If there's really a gap between `f` and all possible neural networks, then there must be some way to "detect" this gap. 
+If there's really a gap between $f$ and all possible neural networks, then there must be some way to "detect" this gap. In mathematical terms, there exists a linear functional $L$ that acts as a "function detector."
 
-Think about it geometrically: if `f` is sitting in this unreachable zone, there must be some "direction" in function space that points toward `f` but is completely orthogonal to all neural networks.
+A linear functional is a mapping from a vector space of functions to the real numbers. Think of it as a tool that takes a function as input and gives you a single number as output. The "linearity" means it respects addition and scalar multiplication, which makes it a well-behaved detector.
 
-In mathematical terms, there exists a **linear functional** `L` (think of it as a "function detector") such that:
-- `L(f) ≠ 0` (it can "see" our function `f`)  
-- `L(N) = 0` for every neural network `N` (but it's "blind" to all neural networks)
+This detector has two crucial properties:
+- $L(f) \neq 0$ (it can "see" our function $f$)
+- $L(N) = 0$ for every neural network $N$ (but it's "blind" to all neural networks)
 
-### What Is This Mysterious "Function Detector"?
+### The Theorems That Make It Possible
 
-By a beautiful theorem (Riesz Representation), every such linear functional corresponds to a **signed measure** `μ`. You can think of a measure as a way of "weighing" different parts of the input space.
+Two powerful theorems from functional analysis allow us to formalize this detector:
 
-This measure has a magical property:
-```
-∫ σ(w·x + b) dμ(x) = 0
-```
-for EVERY choice of weights `w` and bias `b`.
+**Hahn-Banach Theorem**: This theorem guarantees that if a function $f$ is not in the closure of a set of functions (like our neural networks), then there exists a linear functional that is non-zero on $f$ but zero on the entire set. This theorem proves that our "detector" $L$ must exist.
 
-In plain English: **No matter how you orient or shift a sigmoid, when you "weigh" it according to μ, you always get zero.**
+**Riesz Representation Theorem**: This theorem states that every such linear functional corresponds to a unique signed measure $\mu$. This measure acts as a special "weighing scheme" for the input space.
 
-This is like saying there's some weird weighing scheme where every possible sigmoid function has zero "total weight."
+So, our detector's properties can be rewritten in terms of an integral with a measure $\mu$:
+- $\int f(x) d\mu(x) \neq 0$ (it can "see" $f$)
+- $\int \sigma(w \cdot x + b) d\mu(x) = 0$ for EVERY choice of weights $w$ and bias $b$ (it's "blind" to all sigmoids).
 
-### Time to Show This Is Impossible
+## Time to Show This Is Impossible
 
 Now we're going to show that such a measure cannot exist. This is where the contradiction comes in.
 
-**Step 1: Sigmoids Can Create "Nearly" Step Functions**
+### Step 1: Sigmoids Can Create "Nearly" Step Functions
 
-Remember how steep sigmoids approach step functions? For very large `λ`, the function:
-```
-σ(λ(w·x + b))
-```
-becomes almost exactly:
-```
-{ 1  if w·x + b > 0
-{ 0  if w·x + b < 0
-```
+As a sigmoid gets very steep, it approaches a step function that is 1 on one side of a hyperplane and 0 on the other. For a very large scaling factor $\lambda$, the function:
 
-This is a step function that jumps from 0 to 1 across the hyperplane `w·x + b = 0`.
+$$\sigma(\lambda(w \cdot x + b)) \approx \begin{cases} 
+1 & \text{if } w \cdot x + b > 0 \\
+0 & \text{if } w \cdot x + b < 0
+\end{cases}$$
 
-**Step 2: The Measure Must Annihilate Step Functions**
+### Step 2: The Measure Must Annihilate Step Functions
 
-If our measure `μ` makes every sigmoid integrate to zero, then (taking limits) it must also make every step function integrate to zero:
-```
-∫ χ_{w·x + b > 0} dμ(x) = 0
-```
-where `χ` is the characteristic function (1 on one side of the hyperplane, 0 on the other).
+If our measure $\mu$ makes every sigmoid integrate to zero, then (taking limits) it must also make every step function integrate to zero:
 
-**Step 3: But This Means the Measure Is Zero Everywhere!**
+$$\int \chi_{\{x: w \cdot x + b > 0\}} d\mu(x) = 0$$
 
-This is the crucial step, so let's really understand it. We know that:
-```
-∫ χ_{w·x + b > 0} dμ(x) = 0
-```
-for EVERY possible choice of `w` and `b`.
+where $\chi$ is the characteristic function (1 on one side of the hyperplane, 0 on the other). This means the detector is blind to every possible half-space.
 
-**The Pizza Slice Argument**
+### How Does Region Intersection Add to This?
 
-Imagine you're trying to measure the "weight" of a pizza using a very weird scale that can only weigh pieces created by straight cuts.
+You asked specifically about how a region like $x_1 > 0$ and $x_2 < 1$ adds to this. This is the crucial leap! The proof doesn't just eliminate a single half-space. It eliminates all of them, and then uses that fact to eliminate any region you can possibly build.
 
-In 2D, here's what we can do with half-spaces (straight cuts):
+By using $\sigma(x_1)$ and $(1-\sigma(x_2-1))$, you've correctly shown how a neural network can approximate the indicator function for the region where $x_1 > 0$ and $x_2 < 1$. This is a polygonal region created by the intersection of half-spaces.
 
-1. **Cut the pizza in half vertically**: Everything to the right of the line `x = 0` has weight 0
-2. **Cut it horizontally**: Everything above the line `y = 0` has weight 0  
-3. **Cut it diagonally**: Everything above the line `y = x` has weight 0
-4. **Make ANY straight cut at ANY angle**: Always weight 0
+### Step 3: But This Means the Measure Is Zero Everywhere!
 
-Now here's the key insight - let's try to isolate a tiny square region around point `(a,b)`:
+This is the crucial step where our region construction becomes essential. We know that:
 
-**Step 3a: Build a Box Around Any Point**
+$\int \chi_{\{x: w \cdot x + b > 0\}} d\mu(x) = 0$
 
-To isolate the square `[a-δ, a+δ] × [b-δ, b+δ]`:
+for EVERY possible choice of $w$ and $b$.
 
-- Take the half-space `x > a-δ` (everything to the right of the left edge)
-- Take the half-space `x < a+δ` (everything to the left of the right edge)  
-- Take the half-space `y > b-δ` (everything above the bottom edge)
-- Take the half-space `y < b+δ` (everything below the top edge)
+#### The Logic of Elimination
 
-The intersection of all four half-spaces is exactly our little square!
+Remember how we showed that neural networks can construct indicator functions for ANY region by intersecting half-spaces? Now we're going to use this construction power to destroy our hypothetical measure $\mu$.
 
-But wait - we said `x < a+δ` is NOT a half-space of the form `w·x + b > 0`. However, we can rewrite it as:
-```
-x < a+δ  ⟺  -(x - (a+δ)) > 0  ⟺  (-1)·x + (a+δ) > 0
-```
+Since the detector assigns zero weight to every half-space, we can use these half-spaces to "carve up" the entire space and show that the measure of every region must be zero:
 
-So `x < a+δ` IS a half-space with `w = -1` and `bias = a+δ`.
+1. **Eliminate Half-Spaces**: The detector cannot see anything in any half-space. The weight of everything to the "left" of any hyperplane is zero, and the weight of everything to the "right" of any hyperplane is zero.
 
-**Step 3b: Every Box Has Zero Weight**
+2. **Eliminate Intersecting Regions**: Since we can construct any polygonal region (like our example where $x_1 > 0$ AND $x_2 < 1$) by intersecting half-spaces, the detector must also assign zero weight to that region. 
+   
+   Here's the key insight: If you take the intersection of regions that each have zero measure, their intersection also has zero measure. So our constructed regions like $\sigma(x_1) \cdot (1 - \sigma(x_2 - 1))$ must also integrate to zero under $\mu$.
 
-Since our measure gives zero weight to each of the four half-spaces, and since our box is the intersection of these half-spaces, what's the weight of the box?
+3. **Eliminate Everything**: This logic extends to ANY region, no matter how small. We can:
+   - Build arbitrarily small boxes around any point using intersections of hyperplanes
+   - Since each hyperplane contributes zero measure, their intersection (the box) has zero measure
+   - Since the box around any point has zero measure, the point itself has zero measure
 
-This is where we need a key property of measures: if you can write a region as intersections and unions of sets that each have weight 0, then the region itself has weight 0.
+**Why This Construction Matters:**  
+The region construction isn't just a neat trick - it's the mathematical crowbar that pries apart our assumption! By showing that neural networks can approximate indicators for any region we can construct with hyperplane intersections, we've shown that our hypothetical measure $\mu$ must assign zero weight to every possible region. But if $\mu$ is zero everywhere, it can't detect anything - including our supposedly "unapproximable" function $f$.
 
-More precisely, our box can be written as:
-```
-Box = {x > a-δ} ∩ {x < a+δ} ∩ {y > b-δ} ∩ {y < b+δ}
-```
+Since this argument works for ANY point, every single point in our domain has zero "weight" according to measure $\mu$. Therefore, $\mu$ is the zero measure everywhere.
 
-Since each piece has measure 0, the intersection has measure 0.
-
-**Step 3c: Shrink the Boxes**
-
-Now make `δ` smaller and smaller. You get a sequence of boxes:
-- `[a-1, a+1] × [b-1, b+1]` has weight 0
-- `[a-0.5, a+0.5] × [b-0.5, b+0.5]` has weight 0  
-- `[a-0.1, a+0.1] × [b-0.1, b+0.1]` has weight 0
-- ...
-- `[a-ε, a+ε] × [b-ε, b+ε]` has weight 0 for any `ε > 0`
-
-As the boxes shrink down to the single point `(a,b)`, the weight remains 0.
-
-**Step 3d: Every Point Has Zero Weight**
-
-Since this argument works for ANY point `(a,b)`, every single point in our domain has zero "weight" according to measure `μ`.
-
-**Step 3e: Every Region Has Zero Weight**
-
-Now, any region in our domain can be built up from points. Since every point has weight 0, every region has weight 0.
-
-Therefore: `μ` is the zero measure everywhere.
-
-**The Contradiction Strikes**
+## The Contradiction Strikes
 
 But remember why we introduced this measure in the first place! We said:
-```
-L(f) = ∫ f(x) dμ(x) ≠ 0
-```
 
-If `μ = 0` everywhere, then:
-```
-∫ f(x) dμ(x) = ∫ f(x) · 0 dx = 0
-```
+$$L(f) = \int f(x) d\mu(x) \neq 0$$
 
-So we need `L(f) ≠ 0` and `L(f) = 0` at the same time. **Impossible!**
+If $\mu = 0$ everywhere, then:
 
-**What This Really Shows**
+$$\int f(x) d\mu(x) = \int f(x) \cdot 0 \, dx = 0$$
 
-The beautiful insight is that half-spaces are incredibly powerful building blocks. They can:
-- Be oriented in any direction
-- Be placed at any position  
-- Be combined to isolate any region, no matter how small
-
-If a measure gives zero weight to ALL half-spaces, it has no choice but to give zero weight to EVERYTHING. But then it can't distinguish our target function `f` from neural networks.
-
-This is why neural networks work - their basic building blocks (sigmoids → half-spaces) are geometrically rich enough to slice up space in every possible way.
-
-### The Contradiction Revealed
-
-But wait! We said that `L(f) ≠ 0`, which means:
-```
-∫ f(x) dμ(x) ≠ 0
-```
-
-How can this integral be non-zero if `μ = 0`? 
-
-**This is impossible!** We've reached our contradiction.
+So we need $L(f) \neq 0$ and $L(f) = 0$ at the same time. **Impossible!** We've reached our contradiction.
 
 ### What Went Wrong With Our Assumption?
 
-Our assumption that neural networks can't approximate `f` led us to conclude that some non-zero measure annihilates all sigmoids, which in turn led us to conclude that the measure is zero. But a zero measure can't distinguish `f` from neural networks.
+Our assumption that neural networks can't approximate $f$ led us to conclude that some non-zero measure annihilates all sigmoids, which in turn led us to conclude that the measure is zero. But a zero measure can't distinguish $f$ from neural networks.
 
 The only way to resolve this contradiction is to abandon our original assumption.
 
-**Therefore: Neural networks CAN approximate any continuous function arbitrarily closely.**
+**Therefore**: Neural networks CAN approximate any continuous function arbitrarily closely.
 
 ## Why This Proof Is Beautiful
 
 This proof has that classic "proof by contradiction" elegance:
-
-1. **Assume the opposite** of what you want to prove
-2. **Follow the logic** wherever it leads
-3. **Reach an absurd conclusion** 
-4. **Blame the assumption** and declare victory
+1. Assume the opposite of what you want to prove
+2. Follow the logic wherever it leads
+3. Reach an absurd conclusion
+4. Blame the assumption and declare victory
 
 But it's more than just clever - it reveals deep structure. The proof shows us that:
-
-- **Sigmoid functions are "rich enough"** to distinguish points in space (via half-spaces)
-- **Measures and integration** provide the right framework for thinking about function approximation
-- **The geometry of half-spaces** is intimately connected to neural network expressivity
+- Sigmoid functions are "rich enough" to distinguish points in space (via half-spaces)
+- Measures and integration provide the right framework for thinking about function approximation
+- The geometry of half-spaces is intimately connected to neural network expressivity
 
 ## The Beautiful Big Picture
 
-The Universal Approximation Theorem is like a mathematical permission slip. It says:
-
-*"Go ahead and use neural networks for complex problems. In principle, they can handle whatever you throw at them."*
+The Universal Approximation Theorem is like a mathematical permission slip. It says: "Go ahead and use neural networks for complex problems. In principle, they can handle whatever you throw at them."
 
 It's the theoretical foundation that makes the entire field of deep learning mathematically sensible. Without it, neural networks would just be a weird engineering trick. With it, they're a mathematically principled approach to function approximation.
 
