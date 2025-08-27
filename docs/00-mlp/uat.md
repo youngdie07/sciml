@@ -1,8 +1,23 @@
 # Universal Approximation Theorem: Interactive Demos
 
+## Step Function Approximation
+
+<div id="relu-construction">
+  <canvas id="relu-steps" width="800" height="400"></canvas>
+  <div class="controls">
+    <label>Number of Bumps: <span id="bumps-value">3</span>
+      <input type="range" id="bumps" min="1" max="50" value="3">
+    </label>
+  </div>
+</div>
+
 ## ReLU Network Approximation Visualization
 
 This interactive demo shows how a neural network decomposes functions into ReLU components. The example network uses 5 ReLU neurons to approximate a cubic function.
+
+For a ReLU function ReLU(wx + b), the bias term b determines the activation threshold where the function "turns on."
+The ReLU switches from outputting 0 to outputting the linear part when $wx + b = 0$, which gives us the inflection point at $x = -b/w$.
+You can see this in the visualization: ReLU(x-2) activates at x = 2 (where -b/w = -(-2)/1 = 2), and ReLU(x+1) activates at x = -1 (where -b/w = -(1)/1 = -1).
 
 <div id="relu-components-demo">
   <h3>Interactive ReLU Decomposition</h3>
@@ -46,16 +61,7 @@ This interactive demo shows how a neural network decomposes functions into ReLU 
 
 <iframe src="https://www.desmos.com/calculator/6sbcqpf2cb?embed" width="500" height="500" style="border: 1px solid #ccc" frameborder=0></iframe>
 
-## Step Function Approximation
 
-<div id="relu-construction">
-  <canvas id="relu-steps" width="800" height="400"></canvas>
-  <div class="controls">
-    <label>Number of Bumps: <span id="bumps-value">3</span>
-      <input type="range" id="bumps" min="1" max="50" value="3">
-    </label>
-  </div>
-</div>
 
 ## Activation Function Comparison
 
