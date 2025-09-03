@@ -128,10 +128,10 @@ u = g & \text{on } \partial\Omega
 \end{equation}
 
 \textbf{1D case:}
-$$-\frac{d^2u}{dx^2} = 2, \quad u(0) = u(1) = 0$$
+$$-\frac{d^2u}{dx^2} = f(x), \quad u(0) = u(1) = 0$$
+For the source term $f(x) = \pi^2 \sin(\pi x)$
 
-\textbf{Analytical solution:}
-$$u(x) = x(1-x)$$
+\textbf{Analytical solution:} $u(x) = \sin(\pi x)$
 
 \column{0.5\textwidth}
 \begin{figure}
@@ -149,7 +149,7 @@ $$u(x) = x(1-x)$$
 \begin{figure}
 \centering
 \includegraphics[width=0.6\textwidth]{figs/sparse-data-challenge.png}
-\caption{Learning from sparse data: 5 noisy measurements to reconstruct continuous solution}
+\caption{Learning from sparse data: 15 noisy measurements to reconstruct continuous solution}
 \end{figure}
 
 \end{frame}
@@ -159,7 +159,7 @@ $$u(x) = x(1-x)$$
 \column{0.5\textwidth}
 \textbf{Given:}
 \begin{itemize}
-    \item Sparse measurements (e.g., 5 points)
+    \item Sparse measurements (e.g., 15 points)
     \item Noisy observations
     \item Unknown functional form
     \item Potentially high dimensions
@@ -266,6 +266,14 @@ $$|f(x) - P(x)| < \epsilon \quad \forall x \in [a,b]$$
 $$B_n[f](x) = \sum_{k=0}^{n} f\left(\frac{k}{n}\right) \binom{n}{k} x^k (1-x)^{n-k}$$
 \end{frame}
 
+\begin{frame}{Polynomial Approximation of sparse data}
+	\begin{figure}
+		\centering
+		\includegraphics[width=\textwidth]{figs/polynomial-approx-sparse.png}
+		\caption{Runge osciallations at higher degree polynomial. Max 14, ntrain - 1 data points}
+	\end{figure}
+\end{frame}
+
 \begin{frame}{Polynomial Approximation in Action}
 \begin{columns}
 \column{0.65\textwidth}
@@ -358,7 +366,7 @@ Exponential convergence for analytic functions
 \column{0.5\textwidth}
 \textbf{Neural Networks:}
 \begin{itemize}
-    \item Local basis functions
+    \item Localized representations
     \item Adaptive placement
     \item Compositional structure
     \item Dimension-friendly
