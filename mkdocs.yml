@@ -117,12 +117,12 @@ nav:
     - Automatic Differentiation: 00-mlp/ad.md
     - Gradient Descent: 00-mlp/sgd.md
   - PINNs:
-    - PINNs oscillator: 01-pinn/pinn.ipynb
-    - Soft vs Hard constraint: 01-pinn/poisson.ipynb
-    - Adaptive Weights: 01-pinn/adaptive-weights.ipynb
-    - Collocation: 01-pinn/collocation.ipynb
-    - Inverse analysis: 01-pinn/inverse-heat.ipynb
-    - Burgers: 01-pinn/burgers.ipynb
+    - PINNs oscillator: 01-pinns/pinns.ipynb
+    - Soft vs Hard constraint: 01-pinns/poisson.ipynb
+    - Adaptive Weights: 01-pinns/adaptive-weights.ipynb
+    - Collocation: 01-pinns/collocation.ipynb
+    - Inverse analysis: 01-pinns/inverse-heat.ipynb
+    - Burgers: 01-pinns/burgers.ipynb
 
 copyright: |
   &copy; 2025 <a href="https://github.com/kks32-courses"  target="_blank" rel="noopener">Krishna Kumar</a>
