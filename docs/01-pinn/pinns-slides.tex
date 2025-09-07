@@ -3,39 +3,63 @@
 % CC BY-NC-SA 4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)
 %**************************************************************************************
 
-\documentclass[notes]{beamer}
+\documentclass[aspectratio=169]{beamer}
 
 \mode<presentation> {
-
-\usetheme{Madrid}
-
-% Burnt orange
-\definecolor{burntorange}{rgb}{0.8, 0.33, 0.0}
-\colorlet{beamer@blendedblue}{burntorange}
-% Pale yellow
-\definecolor{paleyellow}{rgb}{1.0, 1.0, 0.953}
-\setbeamercolor{background canvas}{bg=paleyellow}
-% Secondary and tertiary palette
-\setbeamercolor*{palette secondary}{use=structure,fg=white,bg=burntorange!80!black}
-\setbeamercolor*{palette tertiary}{use=structure,fg=white,bg=burntorange!60!black}
-
-% To remove the navigation symbols from the bottom of all slides uncomment this line
-%\setbeamertemplate{navigation symbols}{}
+	\usetheme{Madrid}
+	
+	% Burnt orange
+	\definecolor{burntorange}{rgb}{0.8, 0.33, 0.0}
+	\colorlet{beamer@blendedblue}{burntorange}
+	% Pale yellow
+	\definecolor{paleyellow}{rgb}{1.0, 1.0, 0.953}
+	\setbeamercolor{background canvas}{bg=paleyellow}
+	% Secondary and tertiary palette
+	\setbeamercolor*{palette secondary}{use=structure,fg=white,bg=burntorange!80!black}
+	\setbeamercolor*{palette tertiary}{use=structure,fg=white,bg=burntorange!60!black}
+	
+	% Remove navigation symbols
+	\setbeamertemplate{navigation symbols}{}
 }
 
-\usepackage{amsmath}
-\DeclareMathOperator*{\argmin}{arg\,min}
-\DeclareMathOperator*{\argmax}{arg\,max}
+\usepackage{amsmath,amssymb,amsthm}
 \usepackage{bm}
-\usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables
-\usepackage{breqn}
-\usepackage{cleveref}
-\usepackage{graphicx} % for figures
+\usepackage{booktabs}
+\usepackage{graphicx}
 \usepackage[labelsep=space,tableposition=top]{caption}
 \renewcommand{\figurename}{Fig.} 
-\usepackage{caption,subcaption}% http://ctan.org/pkg/{caption,subcaption}
+\usepackage{caption,subcaption}
 \usepackage{xcolor}
+\usepackage{transparent}
 \usepackage{hyperref}
+\usepackage{tikz}
+\usepackage{listings}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usetikzlibrary{shapes,arrows,positioning,calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+
+% Define math operators
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator{\ReLU}{ReLU}
+\DeclareMathOperator{\sign}{sign}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+
+% Code listing style
+\lstset{
+    language=Python,
+    basicstyle=\tiny\ttfamily,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{green!70!black},
+    showstringspaces=false,
+    frame=single,
+    breaklines=true,
+    numbers=left,
+    numberstyle=\tiny
+}
 
 \AtBeginSection[]{
 	\begin{frame}{Outline}
@@ -90,7 +114,7 @@ University of Texas at Austin \\
 
 \vspace{1cm}
 \centering
-\href{https://colab.research.google.com/github/kks32-courses/ut-portugal-sciml/blob/main/docs/01-pinn/pinn.ipynb}{\beamergotobutton{Open Notebook: PINN}}
+\href{https://colab.research.google.com/github/kks32-courses/sciml/blob/main/docs/01-pinn/pinn.ipynb}{\beamergotobutton{Open Notebook: PINN}}
 
 \end{frame}
 
@@ -153,7 +177,7 @@ with initial conditions: $u(0) = 1$, $\frac{du}{dt}(0) = 0$.
 
 \begin{figure}[ht]
 	\centering
-	\includegraphics[width=0.9\textwidth]{figs/oscillator-result-nn.png}
+	\includegraphics[width=0.8\textwidth]{figs/oscillator-result-nn.png}
 	\caption*{The network overfits to the sparse data and does not respect the underlying physics.}
 \end{figure}
 
@@ -192,8 +216,6 @@ with initial conditions: $u(0) = 1$, $\frac{du}{dt}(0) = 0$.
 \frametitle{The Complete PINN Loss Function}
 
 The total loss is a combination of data fit and physics enforcement.
-
-\textbf{Total Loss:}
 \begin{equation*}
 \mathcal{L}_{\text{total}}(\theta) = \mathcal{L}_{\text{data}}(\theta) + \lambda \mathcal{L}_{\text{physics}}(\theta)
 \end{equation*}
@@ -281,7 +303,7 @@ The ultimate test: Does the PINN learn physically consistent derivatives?
 
 \begin{figure}[ht]
 	\centering
-	\includegraphics[width=\textwidth]{figs/derivative-comparison.png}
+	\includegraphics[width=0.5\textwidth]{figs/derivative-comparison.png}
 	\caption*{Derivative  plots.}
 \end{figure}
 
@@ -325,7 +347,7 @@ u(0) = 0 \quad \text{and} \quad u(1) = 0
 
 \vspace{1cm}
 \centering
-\href{https://colab.research.google.com/github/kks32-courses/ut-portugal-sciml/blob/main/docs/01-pinn/poisson.ipynb}{\beamergotobutton{Open Notebook: 1D Poisson}}
+\href{https://colab.research.google.com/github/kks32-courses/sciml/blob/main/docs/01-pinn/poisson.ipynb}{\beamergotobutton{Open Notebook: 1D Poisson}}
 
 \end{frame}
 
@@ -385,8 +407,7 @@ The distance function $D(x)$ is zero at the boundaries, forcing $\tilde{u}(x)$ t
 
 \begin{figure}[ht]
 	\centering
-	\includegraphics[width=\textwidth]{figs/poisson-soft-vs-hard.png}
-	\caption*{Comparison plot of soft vs. hard constraint solutions and errors.}
+	\includegraphics[width=0.7\textwidth]{figs/poisson-soft-vs-hard.png}
 \end{figure}
 
 \textbf{Conclusion:}
@@ -424,7 +445,7 @@ The distance function $D(x)$ is zero at the boundaries, forcing $\tilde{u}(x)$ t
 
 \vspace{1em}
 \centering
-\href{https://colab.research.google.com/github/kks32-courses/ut-portugal-sciml/blob/main/docs/01-pinn/inverse-heat.ipynb}{\beamergotobutton{Open Notebook: Inverse Heat}}
+\href{https://colab.research.google.com/github/kks32-courses/sciml/blob/main/docs/01-pinn/inverse-heat.ipynb}{\beamergotobutton{Open Notebook: Inverse Heat}}
 
 
 \end{frame}
@@ -435,7 +456,7 @@ The distance function $D(x)$ is zero at the boundaries, forcing $\tilde{u}(x)$ t
 	
 	\begin{figure}[ht]
 		\centering
-		\includegraphics[width=0.75\textwidth]{figs/inverse-heat-diffusivity.png}
+		\includegraphics[width=0.55\textwidth]{figs/inverse-heat-diffusivity.png}
 	\end{figure}
 	
 \end{frame}
@@ -473,7 +494,7 @@ where the physics loss now includes the trainable parameter $\hat{k}$:
 
 \begin{figure}[ht]
 	\centering
-	\includegraphics[width=0.9\textwidth]{figs/inverse-problem-setup.png}
+	\includegraphics[width=0.8\textwidth]{figs/inverse-problem-setup.png}
 	\caption*{"Experimental Setup" plot, showing the true solution and sparse, noisy data points.}
 \end{figure}
 
@@ -529,6 +550,416 @@ where the physics loss now includes the trainable parameter $\hat{k}$:
 
 \begin{center}
 \textbf{PINNs = Universal Function Approx. + Physics Constraints + Auto. Diff.}
+\end{center}
+
+\end{frame}
+
+%------------------------------------------------
+\section{Collocation Point Strategies}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Collocation Points: Where to Enforce Physics}
+
+\begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+        \textbf{What are collocation points?}
+        \begin{itemize}
+            \item Points where we evaluate PDE residual
+            \item Do not need measurement data
+            \item Distributed throughout domain
+            \item More points → better physics enforcement
+        \end{itemize}
+        
+        \vspace{0.5cm}
+        
+        \textbf{Key question:}
+        How should we distribute these points for optimal performance?
+    \end{column}
+    \begin{column}{0.5\textwidth}
+        \begin{figure}[ht]
+            \centering
+            \includegraphics[width=\textwidth]{figs/sampling.png}
+            \caption*{Different collocation sampling strategies}
+        \end{figure}
+    \end{column}
+\end{columns}
+
+\end{frame}
+
+
+
+%------------------------------------------------
+\begin{frame}
+	\frametitle{Collocation Sampling Strategies}
+\begin{columns}[T]
+    \begin{column}{0.33\textwidth}
+        \textbf{Uniform Grid:}
+        \begin{itemize}
+            \item Simple to implement
+            \item Good coverage
+            \item Curse of dimensionality
+        \end{itemize}
+    \end{column}
+    \begin{column}{0.33\textwidth}
+        \textbf{Random (Monte Carlo):}
+        \begin{itemize}
+            \item Dimension-independent
+            \item May cluster/leave gaps
+            \item Easy to add points
+        \end{itemize}
+    \end{column}
+    \begin{column}{0.34\textwidth}
+        \textbf{Quasi-Random:}
+        \begin{itemize}
+            \item Better coverage than random
+            \item Low discrepancy sequences
+            \item Hammersley, Sobol, Halton
+        \end{itemize}
+    \end{column}
+\end{columns}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+	\frametitle{Collocation Sampling Strategies}
+	
+	\begin{figure}[ht]
+		\centering
+		\includegraphics[width=0.85\textwidth]{figs/collocation-sampling-comparison.png}
+		\caption*{Comparison of different sampling strategies for collocation points}
+	\end{figure}
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Impact of Collocation Strategy}
+
+\begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+        \begin{figure}[ht]
+            \centering
+            \includegraphics[width=\textwidth]{figs/collocation-error-grid.png}
+            \caption*{Error with uniform grid sampling}
+        \end{figure}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+        \begin{figure}[ht]
+            \centering
+            \includegraphics[width=\textwidth]{figs/collocation-error-hammersley.png}
+            \caption*{Error with Hammersley sampling}
+        \end{figure}
+    \end{column}
+\end{columns}
+
+\vspace{0.3cm}
+
+\textbf{Observations:}
+\begin{itemize}
+    \item Quasi-random sampling often outperforms uniform/random
+    \item Better space-filling properties lead to lower errors
+    \item Particularly important in higher dimensions
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\section{Adaptive Weights and Loss Balancing}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{The Loss Balancing Challenge}
+
+\begin{block}{The Problem}
+Different loss terms can have vastly different magnitudes and gradients
+\end{block}
+
+\textbf{Total PINN loss:}
+\begin{equation*}
+\mathcal{L} = \mathcal{L}_{\text{data}} + \lambda_{\text{PDE}} \mathcal{L}_{\text{PDE}} + \lambda_{\text{BC}} \mathcal{L}_{\text{BC}} + \lambda_{\text{IC}} \mathcal{L}_{\text{IC}}
+\end{equation*}
+
+\vspace{0.5cm}
+
+\textbf{Challenges:}
+\begin{itemize}
+    \item Data loss: Often $O(10^{-3})$ to $O(10^{-1})$
+    \item PDE residual: Can be $O(10^2)$ to $O(10^4)$ initially
+    \item Boundary conditions: Variable scale
+    \item Poor balance → training instability or failure
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Question:} How to choose $\lambda$ values optimally?
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Gradient-Based Adaptive Weighting}
+
+\textbf{Key idea:} Balance the gradients of different loss terms
+
+\vspace{0.5cm}
+
+\textbf{Algorithm (Wang et al., 2021):}
+\begin{enumerate}
+    \item Compute gradient statistics:
+    $$\bar{g}_i = \frac{1}{|\theta|}\sum_{\theta} |\nabla_\theta \mathcal{L}_i|$$
+    
+    \item Update weights to balance gradients:
+    $$\lambda_i^{(k+1)} = \lambda_i^{(k)} \cdot \left(\frac{\max_j \bar{g}_j}{\bar{g}_i}\right)^\alpha$$
+    
+    \item Apply exponential moving average for stability
+\end{enumerate}
+
+\vspace{0.5cm}
+
+\textbf{Benefits:}
+\begin{itemize}
+    \item Prevents gradient imbalance
+    \item Improves convergence speed
+    \item Reduces manual tuning
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Adaptive Weights in Action}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{figs/adaptive-weights-results.png}
+    \caption*{Comparison of fixed vs adaptive weighting on a 2D Poisson problem}
+\end{figure}
+
+\textbf{Results:}
+\begin{itemize}
+    \item Adaptive weights: 10× faster convergence
+    \item Better final accuracy
+    \item More stable training
+    \item Automatic adjustment to problem characteristics
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\section{Advanced Application: Burgers Equation}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{The Burgers Equation: A Nonlinear PDE Challenge}
+
+\begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+        \textbf{Viscous Burgers equation:}
+        $$\frac{\partial u}{\partial t} + u\frac{\partial u}{\partial x} = \nu\frac{\partial^2 u}{\partial x^2}$$
+        
+        \textbf{Domain:} $(x,t) \in [-1,1] \times [0,1]$
+        
+        \textbf{Initial condition:}
+        $$u(x,0) = -\sin(\pi x)$$
+        
+        \textbf{Boundary conditions:}
+        $$u(-1,t) = u(1,t) = 0$$
+    \end{column}
+    \begin{column}{0.5\textwidth}
+        \begin{figure}[ht]
+            \centering
+            \includegraphics[width=\textwidth]{figs/burgers-solution.png}
+            \caption*{Burgers equation solution showing shock formation}
+        \end{figure}
+    \end{column}
+\end{columns}
+
+\vspace{0.3cm}
+\textbf{Challenges:} Nonlinearity, shock formation, multi-scale features
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{PINN for Burgers Equation}
+
+\begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+        \textbf{Network architecture:}
+        \begin{itemize}
+            \item Input: $(x, t)$
+            \item Output: $u(x, t)$
+            \item Hidden layers: 8 × 20 neurons
+            \item Activation: Tanh
+        \end{itemize}
+        
+        \vspace{0.5cm}
+        
+        \textbf{Loss function:}
+        \begin{align*}
+        \mathcal{L} = &\mathcal{L}_{\text{PDE}} + \mathcal{L}_{\text{IC}} + \mathcal{L}_{\text{BC}} \\
+        \mathcal{L}_{\text{PDE}} = &\frac{1}{N_f}\sum \left|\frac{\partial u}{\partial t} + u\frac{\partial u}{\partial x} - \nu\frac{\partial^2 u}{\partial x^2}\right|^2
+        \end{align*}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+        \begin{figure}[ht]
+            \centering
+            \includegraphics[width=\textwidth]{figs/collocation-burgers.png}
+            \caption*{Collocation points for Burgers equation}
+        \end{figure}
+    \end{column}
+\end{columns}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Burgers Equation: Forward Problem Results}
+
+\begin{columns}[t]
+	\column{0.65\textwidth}
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figs/burgers-prediction.png}
+    \caption*{PINN prediction vs exact solution for Burgers equation}
+\end{figure}
+
+	\column{0.35\textwidth}
+\textbf{Performance metrics:}
+\begin{itemize}
+    \item Relative $L^2$ error: $< 1\%$
+    \item Training time: ~5 minutes on GPU
+    \item No mesh required
+    \item Captures shock accurately
+\end{itemize}
+	
+\end{columns}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Inverse Problem: Parameter Discovery in Burgers}
+
+\begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+        \textbf{Problem setup:}
+        \begin{itemize}
+            \item Unknown viscosity $\nu$
+            \item Sparse measurements of $u(x,t)$
+            \item Goal: Recover $\nu$ and full solution
+        \end{itemize}
+        
+        \vspace{0.5cm}
+        
+        \textbf{Modified loss:}
+        $$\mathcal{L} = \mathcal{L}_{\text{data}} + \lambda\mathcal{L}_{\text{PDE}}(\nu)$$
+        
+        where $\nu$ is a trainable parameter
+    \end{column}
+    \begin{column}{0.5\textwidth}
+        \begin{figure}[ht]
+            \centering
+            \includegraphics[width=\textwidth]{figs/burgers-inverse-prediction.png}
+            \caption*{Inverse problem: recovering solution from sparse data}
+        \end{figure}
+    \end{column}
+\end{columns}
+
+\vspace{0.5cm}
+
+\textbf{Results:}
+\begin{itemize}
+    \item True $\nu = 0.01$, Predicted $\nu = 0.00998$
+    \item Error in parameter: $< 0.2\%$
+    \item From only 2000 scattered measurements!
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\section{Practical Considerations}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Implementation Best Practices}
+
+\begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+        \textbf{Architecture design:}
+        \begin{itemize}
+            \item Start with 4-8 layers, 20-50 neurons
+            \item Tanh or Swish for smooth problems
+            \item Adaptive activation functions for shocks
+            \item Skip connections for deep networks
+        \end{itemize}
+        
+        \vspace{0.5cm}
+        
+        \textbf{Training strategies:}
+        \begin{itemize}
+            \item Adam optimizer with learning rate decay
+            \item Start with $\lambda = 1$, then adapt
+            \item Quasi-random collocation points
+            \item Mini-batching for large problems
+        \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+        \textbf{Common pitfalls:}
+        \begin{itemize}
+            \item Imbalanced loss terms
+            \item Too few collocation points
+            \item Wrong activation for problem type
+            \item Ignoring boundary conditions
+        \end{itemize}
+        
+        \vspace{0.5cm}
+        
+        \textbf{Debugging tips:}
+        \begin{itemize}
+            \item Visualize loss components separately
+            \item Check gradient flow
+            \item Start with manufactured solutions
+            \item Verify BC/IC satisfaction
+        \end{itemize}
+    \end{column}
+\end{columns}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{When to Use PINNs}
+
+\begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+        \textbf{PINNs excel at:}
+        \begin{itemize}
+            \item Inverse problems
+            \item Data assimilation
+            \item High-dimensional PDEs
+            \item Irregular geometries
+            \item Parameter discovery
+            \item Uncertainty quantification
+        \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+        \textbf{Consider alternatives when:}
+        \begin{itemize}
+            \item Need guaranteed accuracy
+            \item Have simple, regular geometry
+            \item Require real-time solutions
+            \item Conservation is critical
+            \item Problem is well-suited to FEM/FDM
+        \end{itemize}
+    \end{column}
+\end{columns}
+
+\vspace{0.5cm}
+
+\begin{center}
+\textbf{PINNs complement, not replace, traditional methods}
 \end{center}
 
 \end{frame}
