@@ -117,9 +117,9 @@ nav:
     - Automatic Differentiation: 00-mlp/ad.md
     - Gradient Descent: 00-mlp/sgd.md
   - Classification:
-    - Decision Tree: 00-mlp-dtree/00a-classification.ipynb
-    - MLP Classification: 00-mlp-dtree/00b-mlp-classification.ipynb
-    - Binary Cross Entropy: 00-mlp-dtree/bce.md
+    - Decision Tree: 00-mlp/00a-classification.ipynb
+    - MLP Classification: 00-mlp/00b-mlp-classification.ipynb
+    - Binary Cross Entropy: 00-mlp/bce.md
   - PINNs:
     - PINNs oscillator: 01-pinns/pinns.ipynb
     - Soft vs Hard constraint: 01-pinns/poisson.ipynb
