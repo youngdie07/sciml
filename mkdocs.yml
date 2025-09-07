@@ -114,6 +114,7 @@ nav:
     - UAT: 
       - UAT Proof: 00-mlp/uat-proof.md
       - UAT ReLU demo: 00-mlp/uat.md
+    - Regularization: 00-mlp/regularization.md
     - Automatic Differentiation: 00-mlp/ad.md
     - Gradient Descent: 00-mlp/sgd.md
   - Classification:

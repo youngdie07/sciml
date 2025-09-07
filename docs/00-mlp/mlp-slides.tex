@@ -1321,31 +1321,206 @@ $$\mathcal{L} = \lambda_1 \mathcal{L}_{data} + \lambda_2 \mathcal{L}_{PDE} + \la
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Regularization Techniques}
-\begin{columns}
-\column{0.5\textwidth}
+\begin{frame}{Regularization: Preventing Overfitting}
+\begin{block}{The Problem}
+Models that are too complex memorize training data instead of learning patterns
+\end{block}
+
+\vspace{0.5em}
+
+\textbf{Regularization adds a penalty term to the loss:}
+$$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{data}} + \lambda \cdot \mathcal{R}(\theta)$$
+
+\vspace{0.5em}
+
 \textbf{Classical methods:}
 \begin{itemize}
-    \item $L^2$ regularization (weight decay): \\
-    $\mathcal{L}_{total} = \mathcal{L} + \lambda \|\theta\|^2$
-    \item $L^1$ regularization (sparsity)
-    \item Early stopping
-    \item Data augmentation
+    \item \textbf{L1 regularization}: Promotes sparsity (feature selection)
+    \item \textbf{L2 regularization}: Prevents large weights (weight decay)
+    \item Early stopping: Stop training before overfitting
+    \item Data augmentation: Artificially expand training set
 \end{itemize}
 
 \textbf{Modern methods:}
 \begin{itemize}
-    \item Dropout: randomly zero neurons
-    \item Batch normalization
-    \item Layer normalization
-    \item Mixup, cutout, etc.
+    \item Dropout: Randomly disable neurons during training
+    \item Batch/Layer normalization: Stabilize internal distributions
+    \item Mixup, Cutout: Advanced data augmentation
+\end{itemize}
+\end{frame}
+
+\begin{frame}{L1 vs L2 Regularization: Geometric Intuition}
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{figs/l1-l2-regularization.png}
+\caption{L1 (diamond) vs L2 (circle) constraint regions and their effect on optimal solutions}
+\end{figure}
+
+\textbf{Key insight:} The shape of the constraint region determines sparsity!
+\end{frame}
+
+\begin{frame}{L1 Regularization (Lasso)}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Mathematical form:}
+$$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{data}} + \lambda \sum_{i=1}^{n} |w_i|$$
+
+\textbf{Gradient:}
+$$\frac{\partial \mathcal{R}_{L1}}{\partial w_i} = \text{sign}(w_i)$$
+
+\textbf{Key properties:}
+\begin{itemize}
+    \item Creates sparse models (many weights = 0)
+    \item Automatic feature selection
+    \item Non-differentiable at zero
+    \item Diamond-shaped constraint region
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{When to use L1:}
+\begin{itemize}
+    \item High-dimensional data
+    \item Many irrelevant features
+    \item Need interpretability
+    \item Want feature selection
+\end{itemize}
+
+\vspace{0.5em}
+
+\textbf{Effect on weights:}
+\begin{itemize}
+    \item Small weights → pushed to exactly 0
+    \item Large weights → reduced by constant amount
+    \item Result: sparse weight matrix
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{L2 Regularization (Ridge)}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Mathematical form:}
+$$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{data}} + \lambda \sum_{i=1}^{n} w_i^2$$
+
+\textbf{Gradient:}
+$$\frac{\partial \mathcal{R}_{L2}}{\partial w_i} = 2w_i$$
+
+\textbf{Key properties:}
+\begin{itemize}
+    \item Shrinks all weights uniformly
+    \item Weights approach but don't reach zero
+    \item Smooth, differentiable everywhere
+    \item Circular constraint region
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{When to use L2:}
+\begin{itemize}
+    \item Multicollinearity present
+    \item All features potentially relevant
+    \item Need stable solution
+    \item Prevent weight explosion
+\end{itemize}
+
+\vspace{0.5em}
+
+\textbf{Effect on weights:}
+\begin{itemize}
+    \item All weights decay proportionally
+    \item Large weights penalized more
+    \item Result: small but non-zero weights
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Comparison: L1 vs L2 Regularization}
+\begin{table}
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+\textbf{Feature} & \textbf{L1 (Lasso)} & \textbf{L2 (Ridge)} \\
+\midrule
+Penalty term & $\sum |w_i|$ & $\sum w_i^2$ \\
+Constraint shape & Diamond & Circle \\
+Feature selection & Yes & No \\
+Sparsity & High & Low \\
+Solution uniqueness & May not be unique & Always unique \\
+Computational cost & Higher (subgradient) & Lower (gradient) \\
+Robustness to outliers & More robust & Less robust \\
+Multicollinearity & Can be unstable & Handles well \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\vspace{0.5em}
+
+\textbf{Elastic Net:} Combines both L1 and L2
+$$\mathcal{R}_{\text{elastic}} = \alpha \sum |w_i| + (1-\alpha) \sum w_i^2$$
+Best of both worlds: feature selection + stability
+\end{frame}
+
+\begin{frame}[fragile]{Implementing Regularization in Neural Networks}
+\begin{lstlisting}[language=Python]
+import torch
+import torch.nn as nn
+
+class RegularizedNet(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim, 
+                 reg_type='l2', lambda_reg=0.01):
+        super().__init__()
+        self.fc1 = nn.Linear(input_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, output_dim)
+        self.reg_type = reg_type
+        self.lambda_reg = lambda_reg
+    
+    def regularization_loss(self):
+        reg_loss = 0
+        for param in self.parameters():
+            if self.reg_type == 'l1':
+                reg_loss += torch.sum(torch.abs(param))
+            elif self.reg_type == 'l2':
+                reg_loss += torch.sum(param ** 2)
+        return self.lambda_reg * reg_loss
+    
+    def total_loss(self, data_loss):
+        return data_loss + self.regularization_loss()
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}{Choosing the Regularization Parameter $\lambda$}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Too small $\lambda$:}
+\begin{itemize}
+    \item Insufficient regularization
+    \item Model still overfits
+    \item High variance
+\end{itemize}
+
+\vspace{0.5em}
+
+\textbf{Too large $\lambda$:}
+\begin{itemize}
+    \item Over-regularization
+    \item Model underfits
+    \item High bias
+\end{itemize}
+
+\vspace{0.5em}
+
+\textbf{Finding optimal $\lambda$:}
+\begin{itemize}
+    \item Cross-validation
+    \item Grid search: $\lambda \in [10^{-4}, 10^{-3}, ..., 10^2]$
+    \item Validation curves
 \end{itemize}
 
 \column{0.5\textwidth}
 \begin{figure}
 \centering
 \includegraphics[width=\textwidth]{figs/overfitting-demo.png}
-\caption{Effect of regularization on decision boundaries}
+\caption{Effect of regularization strength on model complexity}
 \end{figure}
 \end{columns}
 \end{frame}

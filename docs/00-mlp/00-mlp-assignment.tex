@@ -26,7 +26,7 @@ where $\mathbf{w}^{(1)}, \mathbf{b}^{(1)} \in \mathbb{R}^H$, $\mathbf{w}^{(2)} \
 
 Using the chain rule, derive the update rules for the parameters by finding the partial derivatives $\frac{\partial L}{\partial w_i^{(2)}}$, $\frac{\partial L}{\partial b^{(2)}}$, $\frac{\partial L}{\partial w_i^{(1)}}$, and $\frac{\partial L}{\partial b_i^{(1)}}$. Recall that $\sigma'(z) = \sigma(z)(1-\sigma(z))$.
 
-\section{Computational Experiments: Function Approximation [4 pts]}
+\section{Computational Experiments: Function Approximation [3 pts]}
 
 \subsection{Approximating a Discontinuous Function}
 This problem explores the challenge of approximating non-smooth functions. Consider the Heaviside step function on the interval $x \in [0,1]$:
@@ -51,7 +51,7 @@ For the smooth function $u(x) = 0.5\cos(\pi x^2)$:
     \item[\textbf{b)}] Using the best-performing activation function from part (a), compare the convergence behavior of the following optimizers: SGD (with momentum=0.9), RMSprop, and Adam. Plot their training loss curves on a single log-log plot and discuss the differences in convergence speed and stability.
 \end{enumerate}
 
-\section{Compositional Learning [4 pts]}
+\section{Compositional Learning [3 pts]}
 This section explores how to solve complex problems by breaking them into simpler, modular components that can be learned separately and then combined.
 
 \subsection{Learning and Composing Multi-Scale Functions}
@@ -80,6 +80,31 @@ Now, we will tackle the full problem $h(x)$ using a ``divide and conquer" strate
     \[ \hat{h}_{\text{stitched}}(x) = N_{\text{linear}}(x) + N_{\text{high}}(x) \]
     Implement this composition in code.
     \item[\textbf{c)}] \textbf{Comparison \& Analysis:} Train a single, deep end-to-end network to learn $h(x)$ directly. Create a side-by-side plot comparing the result of your stitched model against the end-to-end model. For clarity, zoom in on the interval $x \in [0.2, 0.8]$ for one of your plots. Discuss the results. Which approach is more effective and why?
+\end{enumerate}
+
+
+
+\section{Regularization in High-Dimensional Spaces [2 pts]}
+\subsection{L1 vs. L2 Regularization for Feature Selection}
+This problem explores how regularization can prevent overfitting and perform feature selection in a high-dimensional setting. We will consider approximating a simple signal, $y = \sin(x)$, from noisy data points. To make the problem challenging, we will transform the input $x$ into a high-dimensional feature space using 100 Gaussian Radial Basis Functions (RBFs), creating an over-parameterized system. The model is a linear combination of these basis functions, and regularization is added to the standard Mean Squared Error loss:
+\[ L_{\text{total}} = \text{MSE} + \lambda \cdot R(W) \]
+where $R(W)$ is the regularization penalty on the weights $W$. We will compare:
+\begin{itemize}
+	\item \textbf{L2 Regularization (Ridge):} $R(W) = \|W\|_2^2 = \sum_i w_i^2$, which penalizes the squared magnitude of the weights.
+	\item \textbf{L1 Regularization (Lasso):} $R(W) = \|W\|_1 = \sum_i |w_i|$, which penalizes the absolute magnitude of the weights.
+\end{itemize}
+
+\begin{enumerate}
+	\item[\textbf{a)}] \textbf{Function Approximation:} 
+	\begin{itemize}
+		\item Describe the behavior of the model with no regularization. 
+		\item How do the L1 and L2 regularized models approximate the underlying true signal?
+	\end{itemize}
+	\item[\textbf{b)}] \textbf{Learned Weights \& Sparsity:} Examine the plot showing the learned weights (coefficients) for the basis functions.
+	\begin{itemize}
+		\item Compare the distribution of weight values for the L2 (Ridge) and L1 (Lasso) models. What is the most significant visual difference between the two?
+		\item The L1 penalty is known to produce \textbf{sparse} solutions. Explain what sparsity means in this context and how the plot for the L1 model demonstrates it.
+	\end{itemize}
 \end{enumerate}
 
 \end{document}
