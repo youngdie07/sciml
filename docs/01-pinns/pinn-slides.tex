@@ -879,6 +879,504 @@ Different loss terms can have vastly different magnitudes and gradients
 \end{frame}
 
 %------------------------------------------------
+\section{Discrete-Time PINNs}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Why Discrete-Time PINNs?}
+
+\textbf{Limitations of Continuous-Time Approach:}
+\begin{itemize}
+    \item \textbf{Computational Cost:} $O(N_x \times N_t)$ collocation points
+    \item \textbf{Memory Issues:} Storing entire space-time solution
+    \item \textbf{Training Difficulty:} Long-time behavior hard to capture
+    \item \textbf{Stiff Problems:} Need very dense time sampling
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Example:} For Burgers equation on $[-1,1] \times [0,10]$:
+\begin{itemize}
+    \item Continuous: 100 × 1000 = 100,000 collocation points
+    \item Discrete: 100 spatial points per time step
+\end{itemize}
+
+\vspace{0.5cm}
+
+\begin{alertblock}{Solution}
+Use time-stepping methods within PINN framework to evolve solution sequentially
+\end{alertblock}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Continuous vs Discrete Time Approaches}
+
+\begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+        \textbf{Continuous-Time PINNs:}
+        \begin{itemize}
+            \item Treat time as another input: $(x,t) \rightarrow u(x,t)$
+            \item Learn entire space-time solution
+            \item Many collocation points in time
+            \item Can become expensive for long simulations
+        \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+        \textbf{Discrete-Time PINNs:}
+        \begin{itemize}
+            \item Leverage classical time-stepping schemes
+            \item Learn mapping from $t^n \rightarrow t^{n+1}$
+            \item Only spatial collocation needed
+            \item More efficient for long time simulations
+        \end{itemize}
+    \end{column}
+\end{columns}
+
+\vspace{0.5cm}
+\textbf{Key Idea:} Integrate Runge-Kutta methods within the PINN framework
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Runge-Kutta Time-Stepping Foundation}
+
+For time-dependent PDEs in semi-discrete form:
+$$\frac{du}{dt} = \mathcal{N}[u](t)$$
+
+A $q$-stage Runge-Kutta method computes:
+\begin{align*}
+U^i &= u^n + \Delta t \sum_{j=1}^q a_{ij} \mathcal{N}[U^j], \quad i = 1, \ldots, q \\
+u^{n+1} &= u^n + \Delta t \sum_{j=1}^q b_j \mathcal{N}[U^j]
+\end{align*}
+
+Where:
+\begin{itemize}
+    \item $U^i$: intermediate stage values
+    \item $\{a_{ij}\}, \{b_j\}, \{c_j\}$: RK coefficients (Butcher tableau)
+    \item Implicit if $a_{ij} \neq 0$ for $j \geq i$
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Discrete-Time PINN Architecture}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.45\textwidth]{figs/burgers-discrete-time.png}
+    \caption*{Network outputs $q$ intermediate stages and final solution at $t^{n+1}$}
+\end{figure}
+
+Network output: $\mathcal{NN}(x; \theta) = [U^1_{NN}, \ldots, U^q_{NN}, u^{n+1}_{NN}]^T$
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Training Discrete-Time PINNs}
+
+\textbf{Loss Function:} Enforce consistency with RK scheme
+
+The RK equations provide multiple estimates of $u^n(x)$:
+\begin{align*}
+u^n(x) &\approx U^i_{NN}(x) - \Delta t \sum_{j=1}^q a_{ij} \mathcal{N}[U^j_{NN}](x), \quad i = 1, \ldots, q \\
+u^n(x) &\approx u^{n+1}_{NN}(x) - \Delta t \sum_{j=1}^q b_j \mathcal{N}[U^j_{NN}](x)
+\end{align*}
+
+\textbf{Total Loss:}
+$$\mathcal{L}(\theta) = \frac{1}{N_n(q+1)} \sum_{i=1}^{q+1} \sum_{k=1}^{N_n} |u^n_{i,NN}(x_k) - u^n(x_k)|^2$$
+
+\begin{itemize}
+    \item All estimates should equal the known $u^n(x)$
+    \item Minimizing discrepancy enforces the physics
+    \item Spatial derivatives computed via AD
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Algorithm: Single-Step Discrete-Time PINN}
+
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE \textbf{Input:} Solution $u^n(x)$ at time $t^n$, time step $\Delta t$
+\STATE \textbf{Input:} RK coefficients $\{a_{ij}\}, \{b_j\}$ for $q$ stages
+\STATE Initialize network $\mathcal{NN}(x;\theta): x \rightarrow [U^1, \ldots, U^q, u^{n+1}]$
+\WHILE{not converged}
+    \STATE Sample spatial points $\{x_k\}_{k=1}^{N_n}$ and- $[U^1_{NN}, \ldots, U^q_{NN}, u^{n+1}_{NN}] \leftarrow \mathcal{NN}(x_k;\theta)$
+    \FOR{$j = 1$ to $q$}
+        \STATE Compute $\mathcal{N}[U^j_{NN}] = -U^j_{NN}\frac{\partial U^j_{NN}}{\partial x} + \nu\frac{\partial^2 U^j_{NN}}{\partial x^2}$
+    \ENDFOR
+    \FOR{$i = 1$ to $q$}
+        \STATE $u^n_{i,est} = U^i_{NN} - \Delta t \sum_{j} a_{ij}\mathcal{N}[U^j_{NN}]$
+    \ENDFOR
+    \STATE $u^n_{q+1,est} = u^{n+1}_{NN} - \Delta t \sum_{j} b_j\mathcal{N}[U^j_{NN}]$
+ and $\mathcal{L} = \frac{1}{(q+1)N_n}\sum_{i,k} |u^n_{i,est}(x_k) - u^n(x_k)|^2$
+    \STATE Update $\theta$ using gradient descent on $\mathcal{L}$
+\ENDWHILE
+\STATE \textbf{Output:} $u^{n+1}(x) = u^{n+1}_{NN}(x; \theta^*)$
+\end{algorithmic}
+\end{algorithm}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Algorithm: Adaptive Time-Stepping}
+
+\begin{algorithm}[H]
+\caption{Adaptive Discrete-Time PINN}
+\begin{algorithmic}[1]
+\STATE \textbf{Input:} Initial $u^0(x)$, target time $T$, tolerance $\epsilon$
+\STATE Initialize $t = 0$, $\Delta t = \Delta t_0$
+\WHILE{$t < T$}
+    \STATE Train PINN for step $t \rightarrow t + \Delta t$ (Algorithm 1)
+    \STATE Compute error estimate $E$ using embedded RK method:
+    \STATE \quad $E = \|u^{n+1}_{high} - u^{n+1}_{low}\|_2$
+    \IF{$E < \epsilon$}
+        \STATE Accept step: $u^{n+1} = u^{n+1}_{high}$;  $t = t + \Delta t$
+        \STATE Adjust: $\Delta t_{new} = 0.9\Delta t(\epsilon/E)^{1/p}$
+    \ELSE
+        \STATE Reject step, retrain with smaller $\Delta t$ and update $\Delta t = 0.5\Delta t$
+    \ENDIF
+    \STATE $\Delta t = \min(\Delta t_{new}, T-t)$
+\ENDWHILE
+\STATE \textbf{Output:} Solution trajectory $\{u^n\}$
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Benefits:} Automatic step size control, error estimation, efficiency
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Discrete-Time Results: Burgers Equation}
+
+\begin{columns}
+	\column{0.65\textwidth}
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figs/burgers-discrete-time-prediction.pdf}
+    \caption*{Discrete-time PINN prediction for Burgers equation using implicit Runge-Kutta}
+\end{figure}
+\column{0.35\textwidth}
+\textbf{Key Results:}
+\begin{itemize}
+    \item High accuracy with large time steps
+    \item Stable evolution over long times
+    \item Captures shock formation accurately
+\end{itemize}
+	
+\end{columns}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Advantages of Discrete-Time PINNs}
+
+\begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+        \textbf{Computational Efficiency:}
+        \begin{itemize}
+            \item Loss evaluated only over spatial domain
+            \item No time-dimension collocation points
+            \item Drastically reduced training points
+        \end{itemize}
+
+        \vspace{0.5cm}
+
+        \textbf{Stability:}
+        \begin{itemize}
+            \item Implicit RK schemes (e.g., Gauss-Legendre)
+            \item Stable for large time steps
+            \item Essential for stiff problems
+        \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+        \textbf{Accuracy Control:}
+        \begin{itemize}
+            \item High-order temporal accuracy via stages
+            \item Adding stages only increases output layer
+            \item Less costly than deeper networks
+        \end{itemize}
+
+        \vspace{0.5cm}
+
+        \textbf{Leverages Numerical Analysis:}
+        \begin{itemize}
+            \item Decades of research on time-stepping
+            \item Proven stability properties
+            \item Well-understood error bounds
+        \end{itemize}
+    \end{column}
+\end{columns}
+
+\end{frame}
+
+%------------------------------------------------
+\section{Variational Formulation and Energy Minimization}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{From Strong Form to Energy Minimization}
+
+Many physical systems are governed by variational principles:
+
+\begin{block}{Principle of Minimum Potential Energy}
+The true solution $u(\mathbf{x})$ minimizes the total potential energy functional $\Pi(u)$
+\end{block}
+
+\textbf{Total Potential Energy:}
+$$\Pi(u) = \underbrace{\int_\Omega \Psi(\epsilon(u)) d\Omega}_{\text{Internal Energy}} - \underbrace{\int_\Omega f \cdot u \, d\Omega}_{\text{Body Forces}} - \underbrace{\int_{\Gamma_N} t \cdot u \, d\Gamma}_{\text{Surface Tractions}}$$
+
+\textbf{Deep Ritz Method:} Train PINN by minimizing energy instead of PDE residual
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Deriving the Energy Formulation}
+
+Starting from the strong form (equilibrium equations):
+$$\nabla \cdot \sigma + f = 0 \text{ in } \Omega$$
+
+\textbf{Step 1:} Multiply by test function $v$ and integrate:
+$$\int_\Omega (\nabla \cdot \sigma) \cdot v \, d\Omega + \int_\Omega f \cdot v \, d\Omega = 0$$
+
+\textbf{Step 2:} Apply integration by parts:
+$$-\int_\Omega \sigma : \nabla v \, d\Omega + \int_{\Gamma} (\sigma \cdot n) \cdot v \, d\Gamma + \int_\Omega f \cdot v \, d\Omega = 0$$
+
+\textbf{Step 3:} For $v = \delta u$ (virtual displacement), this becomes:
+$$\delta \Pi = 0 \quad \Rightarrow \quad \text{Stationarity of } \Pi(u)$$
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Implementation: Strain Energy Density}
+
+For linear elasticity with Lamé parameters $\lambda, \mu$:
+
+\textbf{Strain energy density:}
+$$\Psi(\epsilon) = \frac{\lambda}{2}(\text{tr}(\epsilon))^2 + \mu \, \text{tr}(\epsilon^2)$$
+
+Expanding:
+$$\Psi = \frac{\lambda}{2}(\epsilon_{xx} + \epsilon_{yy})^2 + \mu(\epsilon_{xx}^2 + \epsilon_{yy}^2 + 2\epsilon_{xy}^2)$$
+
+\begin{lstlisting}
+def strain_energy_density(epsilon_xx, epsilon_yy, epsilon_xy):
+    # First term: lambda*(trace)^2
+    psi_1 = 0.5 * lambda_ * (epsilon_xx + epsilon_yy)**2
+
+    # Second term: mu*tr(epsilon^2)
+    psi_2 = mu * (epsilon_xx**2 + epsilon_yy**2 + 2*epsilon_xy**2)
+
+    return psi_1 + psi_2
+\end{lstlisting}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Computing Total Potential Energy}
+
+\begin{lstlisting}
+def potential_energy(x_colloc, y_colloc, x_bound, y_bound):
+    # Compute strains at collocation points
+    epsilon_xx, epsilon_yy, epsilon_xy = strain(x_colloc, y_colloc)
+
+    # Strain energy density
+    psi = strain_energy_density(epsilon_xx, epsilon_yy, epsilon_xy)
+
+    # Numerical integration over domain
+    dx = L / (Nx - 1)
+    dy = W / (Ny - 1)
+    internal_energy = (psi * dx * dy).sum()
+
+    # External work on boundary
+    u_bound = net_u(x_bound, y_bound)
+    v_bound = net_v(x_bound, y_bound)
+    t_x = traction_x(y_bound)
+    t_y = traction_y(y_bound)
+
+    external_work = ((t_x * u_bound + t_y * v_bound) * dy).sum()
+
+    # Total potential energy
+    return internal_energy - external_work
+\end{lstlisting}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Example: 2D Cantilever Beam}
+
+\begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+        \begin{figure}[ht]
+            \centering
+            \includegraphics[width=\textwidth]{figs/2d-cantilever.pdf}
+            \caption*{Cantilever beam: fixed at $x=0$, loaded at $x=L$}
+        \end{figure}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+        \textbf{Problem Setup:}
+        \begin{itemize}
+            \item Linear elasticity
+            \item Fixed end: $u(0,y) = g_u(y)$, $v(0,y) = g_v(y)$
+            \item Free end: traction $\mathbf{t}$
+        \end{itemize}
+
+        \vspace{0.3cm}
+        \textbf{Approach:}
+        \begin{itemize}
+            \item Strong BC enforcement
+            \item Energy minimization
+        \end{itemize}
+    \end{column}
+\end{columns}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Strong BC Enforcement with Trial Functions}
+
+\textbf{Problem:} Enforce $u(x=0, y) = g_u(y)$ and $v(x=0, y) = g_v(y)$
+
+\textbf{Solution:} Construct trial functions that satisfy BCs by design
+
+$$\tilde{u}(x,y) = g_u(y) + \mathcal{D}(x) \cdot \hat{u}_{NN}(x,y)$$
+$$\tilde{v}(x,y) = g_v(y) + \mathcal{D}(x) \cdot \hat{v}_{NN}(x,y)$$
+
+Where:
+\begin{itemize}
+    \item $\mathcal{D}(x)$: Distance function, zero at boundary
+    \item $g_u(y), g_v(y)$: Prescribed boundary values (from beam theory)
+    \item $\hat{u}_{NN}, \hat{v}_{NN}$: Network outputs
+\end{itemize}
+
+\textbf{Example:} For cantilever beam, $\mathcal{D}(x) = x/L$ (simple linear function)
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{PINN Architecture for Elasticity}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figs/static-beam-pinn.pdf}
+    \caption*{Architecture for linear elasticity using energy minimization}
+\end{figure}
+
+\textbf{Key Features:}
+\begin{itemize}
+    \item Network predicts displacements $(u,v)$
+    \item AD computes strains $\boldsymbol{\epsilon}$ and stresses $\boldsymbol{\sigma}$
+    \item Loss is total potential energy $\Pi$
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Results: 2D Cantilever Beam}
+\begin{columns}
+	
+\column{0.4\textwidth}
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figs/strong-bc.png}
+    \caption*{Error distribution using strong BC enforcement and energy minimization}
+\end{figure}
+
+\column{0.6\textwidth}
+\textbf{Performance:}
+\begin{itemize}
+    \item Relative $L^2$ error: $2.4 \times 10^{-3}$
+    \item Exact satisfaction of fixed-end BCs
+    \item Slightly larger errors near loaded end (expected)
+    \item No BC loss terms needed!
+\end{itemize}
+
+\end{columns}
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Static Beam: Complete Solution}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figs/static-beam-results.png}
+    \caption*{Displacement and stress fields computed using energy minimization}
+\end{figure}
+
+\textbf{Observations:}
+\begin{itemize}
+    \item Smooth displacement fields
+    \item Accurate stress concentration at fixed end
+    \item Physical deformation pattern
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Advantages of Energy Minimization}
+
+\begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+        \textbf{Physical Meaning:}
+        \begin{itemize}
+            \item Direct minimization of physical quantity
+            \item Guaranteed energy conservation
+            \item Natural handling of constraints
+        \end{itemize}
+
+        \vspace{0.5cm}
+
+        \textbf{Computational Benefits:}
+        \begin{itemize}
+            \item Only first derivatives needed
+            \item Better conditioned optimization
+            \item No need for BC loss terms
+        \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+        \textbf{Improved Stability:}
+        \begin{itemize}
+            \item Convex for linear problems
+            \item Smoother loss landscape
+            \item Faster convergence
+        \end{itemize}
+
+        \vspace{0.5cm}
+
+        \textbf{Applicability:}
+        \begin{itemize}
+            \item Conservative systems
+            \item Elasticity, electrostatics
+            \item Not for dissipative systems
+        \end{itemize}
+    \end{column}
+\end{columns}
+
+\vspace{0.5cm}
+\centering
+\textbf{When applicable, energy minimization often outperforms strong form}
+
+\end{frame}
+
+%------------------------------------------------
 \section{Practical Considerations}
 
 %------------------------------------------------
