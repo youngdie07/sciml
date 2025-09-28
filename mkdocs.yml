@@ -129,6 +129,11 @@ nav:
     - Inverse analysis: 01-pinns/inverse-heat.ipynb
     - Burgers: 01-pinns/burgers.ipynb
     - Variational formulation: 01-pinns/linear-elastic-fixed.ipynb
+  - DeepONet:
+    - DeepONet: 02-deeponet/deeponet.ipynb
+    - PI-DeepONet: 02-deeponet/pideeponet.ipynb
+    - DeepONet Interpretation: 02-deeponet/deeponet-explanation.md
+    - DeepONet Batch Einsum: 02-deeponet/einsum.md
 
 copyright: |
   &copy; 2025 <a href="https://github.com/kks32-courses"  target="_blank" rel="noopener">Krishna Kumar</a>
