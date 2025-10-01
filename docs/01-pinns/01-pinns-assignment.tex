@@ -1,0 +1,117 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+\title{\textbf{Physics-Informed Neural Networks Assignment}}
+\author{CE397 and CSE393: Scientific Machine Learning}
+\date{}
+\begin{document}
+	\maketitle
+	\hrulefill
+	
+	\section{1D Steady-State Heat Equation}
+	Consider the one-dimensional steady-state heat conduction problem with a heat source on a rod of unit length. The governing equation is:
+	
+	\begin{equation*}
+		\frac{d^2T}{dx^2} + \frac{q(x)}{\kappa} = 0, \quad x \in [0,1]\,,
+	\end{equation*}
+	with homogeneous Dirichlet boundary conditions:
+	\begin{equation*}
+		T(0) = T(1) = 0\,.
+	\end{equation*}
+	Given a thermal diffusivity constant: $\kappa = 0.5$
+	and Heat source term: $q(x) = 15x - 2$.
+	
+	\begin{enumerate}
+		\item[\textbf{a)}] Design a physics-informed neural network with:
+		\begin{itemize}
+			\item Input dimension: 1 (spatial coordinate $x$)
+			\item Three hidden layers with 32 neurons each
+			\item Hyperbolic tangent activation functions
+			\item Output dimension: 1 (temperature $T$)
+		\end{itemize}
+		
+		\item[\textbf{b)}] Construct the physics-informed loss function $\mathcal{L}_{Physics}$ that enforces the PDE.
+		
+		\item[\textbf{c)}] Write the boundary loss function $\mathcal{L}_{BCs}$.
+		
+		\item[\textbf{d)}] Train the network using:
+		\begin{itemize}
+			\item $N_f = 100$ equidistant collocation points
+			\item Total loss $\mathcal{L} = \mathcal{L}_{BCs} + \mathcal{L}_{Physics}$
+			\item Adam optimizer with learning rate $10^{-3}$
+			\item 10,000 epochs
+		\end{itemize}
+		
+		\item[\textbf{e)}] Derive the analytical solution and compare it with the numerical solution. Plot both solutions and compute the relative $L^2$ error.
+	\end{enumerate}
+	
+	\section{Loss Function Design}
+	Investigate different formulations of the loss function:
+	
+	\begin{enumerate}
+		\item[\textbf{a)}] Implement adaptive loss weighting:
+		\begin{equation*}
+			\mathcal{L} = \alpha(t)\mathcal{L}_{BCs} + \beta(t)\mathcal{L}_{Physics}
+		\end{equation*}
+		where $\alpha(t)$ and $\beta(t)$ are dynamic weights.  Compare with the original fixed-weight formulation. 
+	\end{enumerate}
+	
+	\section{Variational Formulation [Optional for CE397]}
+	Implement and analyze a variational (weak) form of the problem:
+	
+	\begin{enumerate}
+		\item[\textbf{a)}] Derive the weak form by multiplying the PDE by test functions $\phi(x)$ and integrating:
+		\begin{equation*}
+			\int_0^1 \frac{dT}{dx}\frac{d\phi}{dx}dx = \int_0^1 \frac{q(x)}{\kappa}\phi dx
+		\end{equation*}
+		
+		\item[\textbf{b)}] Implement this formulation using neural networks
+		and compare with the strong form implementation 
+	\end{enumerate}
+	
+
+	\section{Data-Driven Cross-Section Identification}
+	Consider the static bar equation where the displacement field $u(x)$ is known but the cross-sectional properties $EA(x)$ need to be identified:
+	
+	\begin{equation*}
+		\frac{d}{dx}(EA(x)\frac{du}{dx}) + p(x) = 0, \quad x \in [0,1]
+	\end{equation*}
+	
+	Given:
+	\begin{itemize}
+		\item Displacement field: $u(x) = \sin(2\pi x)$
+		\item Distributed load: $p(x) = -2(3x^2 - 2x)\pi \cos(2\pi x) + 4(x^3 - x^2 + 1)\pi^2 \sin(2\pi x)$
+		\item Domain: $x \in [0,1]$
+		\item Boundary conditions: $u(0) = u(1) = 0$
+	\end{itemize}
+	
+	\begin{enumerate}
+		\item[\textbf{a)}] Design a physics-informed neural network to identify $EA(x)$ with:
+		\begin{itemize}
+			\item Input dimensions: 2 (spatial coordinate $x$ and displacement $u$)
+			\item Three hidden layers with 20 neurons each
+			\item Hyperbolic tangent activation functions
+			\item Output dimension: 1 (stiffness $EA$)
+		\end{itemize}
+		
+		\item[\textbf{b)}] Formulate the physics-informed loss function that enforces the differential equation.
+		
+		\item[\textbf{c)}] Train the network using:
+		\begin{itemize}
+			\item $N = 100$ uniformly distributed training points
+			\item Adam optimizer with learning rate $10^{-3}$
+			\item 5,000 epochs
+		\end{itemize}
+		
+		\item[\textbf{d)}] Compare the identified $EA(x)$ with the analytical solution:
+		\begin{equation*}
+			EA(x) = x^3 - x^2 + 1
+		\end{equation*}
+		
+		\item[\textbf{e)}] Study the influence of noise in the displacement measurements by adding Gaussian noise with a standard deviation of 0.01.
+	\end{enumerate}
+	
+\end{document}
