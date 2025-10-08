@@ -134,6 +134,8 @@ nav:
     - PI-DeepONet: 02-deeponet/pideeponet.ipynb
     - DeepONet Interpretation: 02-deeponet/deeponet-explanation.md
     - DeepONet Batch Einsum: 02-deeponet/einsum.md
+  - Function Encoders:
+    - Function Encoders: 03-function-encoder/03-function-encoder.ipynb
   - GNS:
     - GNS: 04-gns/gnn.ipynb
 
