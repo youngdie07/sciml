@@ -136,6 +136,7 @@ nav:
     - DeepONet Batch Einsum: 02-deeponet/einsum.md
   - Function Encoders:
     - Function Encoders: 03-function-encoder/03-function-encoder.ipynb
+    - Function Approximation: 03-function-encoder/function_approximation_tutorial.md
   - GNS:
     - GNS: 04-gns/gnn.ipynb
 
