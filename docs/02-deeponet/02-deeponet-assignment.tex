@@ -86,7 +86,7 @@
 			\item For each $f(x)$, solve the BVP numerically using finite differences with $n_x = 100$ grid points
 			\item Discretize using central differences for diffusion and upwind for advection:
 			\begin{equation*}
-				\nu\frac{u_{i-1} - 2u_i + u_{i+1}}{\Delta x^2} - c\frac{u_{i+1} - u_i}{\Delta x} = f_i
+				\nu\frac{u_{i-1} - 2u_i + u_{i+1}}{\Delta x^2} - c\frac{u_{i} - u_{i-1}}{\Delta x} = f_i
 			\end{equation*}
 		\end{itemize}
 		
