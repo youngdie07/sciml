@@ -141,7 +141,7 @@ nav:
   - GNS:
     - GNS: 04-gns/gnn.ipynb
   - Automatic Differentiation:
-    - AD: 06-ad/ad.ipynb
+    - AD: 06-ad/06-ad.ipynb
 
 copyright: |
   &copy; 2025 <a href="https://github.com/kks32-courses"  target="_blank" rel="noopener">Krishna Kumar</a>
