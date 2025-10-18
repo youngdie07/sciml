@@ -1,0 +1,1142 @@
+%**************************************************************************************
+% License:
+% CC BY-NC-SA 4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)
+%**************************************************************************************
+
+\documentclass[notes]{beamer}
+
+\mode<presentation> {
+
+\usetheme{Madrid}
+
+% Burnt orange
+\definecolor{burntorange}{rgb}{0.8, 0.33, 0.0}
+\colorlet{beamer@blendedblue}{burntorange}
+% Pale yellow
+\definecolor{paleyellow}{rgb}{1.0, 1.0, 0.953}
+\setbeamercolor{background canvas}{bg=paleyellow}
+% Secondary and tertiary palette
+\setbeamercolor*{palette secondary}{use=structure,fg=white,bg=burntorange!80!black}
+\setbeamercolor*{palette tertiary}{use=structure,fg=white,bg=burntorange!60!black}
+
+% To remove the navigation symbols from the bottom of all slides uncomment this line
+%\setbeamertemplate{navigation symbols}{}
+}
+
+\usepackage{amsmath}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\usepackage{bm}
+\usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables
+\usepackage{breqn}
+\usepackage{cleveref}
+\usepackage{graphicx} % for figures
+\usepackage[labelsep=space,tableposition=top]{caption}
+\renewcommand{\figurename}{Fig.}
+\usepackage{caption,subcaption}% http://ctan.org/pkg/{caption,subcaption}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\AtBeginSection[]{
+	\begin{frame}{Outline}
+		\tableofcontents[
+		currentsection,      % highlight the current section
+		hideallsubsections   % show only section titles
+		]
+	\end{frame}
+}
+
+%----------------------------------------------------------------------------------------
+%	TITLE PAGE
+%----------------------------------------------------------------------------------------
+\title[FNO: Operator Learning in Spectral Space]{Fourier Neural Operator: Learning Solution Operators in Spectral Space}
+\author{Krishna Kumar} % name
+\institute[UT Austin] % institution
+{
+University of Texas at Austin \\
+\medskip
+\textit{
+  \url{krishnak@utexas.edu}} % Your email address
+}
+\date{} % Date, can be changed to a custom date
+
+\begin{document}
+
+\begin{frame}
+\titlepage % title page as the first slide
+\end{frame}
+
+\begin{frame}
+ \frametitle{Overview}
+ \tableofcontents
+\end{frame}
+
+%----------------------------------------------------------------------------------------
+% slides
+%----------------------------------------------------------------------------------------
+
+\section{From CNNs to Kernel Operators: The Conceptual Leap}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Learning Objectives}
+
+\begin{itemize}
+    \item Understand the connection between CNNs and kernel operators
+    \item Master Fourier Transform fundamentals for neural operators
+    \item Learn the FNO architecture: spectral convolution layers
+    \item Implement FNO for 1D Burgers equation
+    \item Apply FNO to 2D Darcy Flow problem
+    \item Explore mesh independence and super-resolution capabilities
+\end{itemize}
+
+\vspace{1cm}
+\centering
+\href{https://colab.research.google.com/github/kks32-courses/sciml/blob/main/docs/05-fno/fno.ipynb}{\beamergotobutton{Open Notebook: FNO}}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{The Central Challenge}
+
+We've seen how DeepONet learns operators by decomposing them into branch-trunk architectures.
+
+\vspace{1cm}
+
+\begin{alertblock}{But there's a deeper question}
+What if \textbf{physics itself suggests the right representation}?
+\end{alertblock}
+
+\vspace{0.5cm}
+
+For 50+ years, \textbf{spectral methods} based on Fourier transforms have dominated computational physics because:
+\begin{itemize}
+    \item Many PDEs simplify in Fourier space (convolution → multiplication)
+    \item Derivatives become algebraic: $\mathcal{F}\left(\frac{\partial u}{\partial x}\right) = ik\hat{u}(k)$
+    \item Global information propagates naturally
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{The FNO insight:} Learn operators \textit{in Fourier space} rather than physical space.
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Convolutional Neural Networks: The Foundation}
+
+CNNs apply \textbf{local} kernels to extract features:
+
+\begin{equation*}
+(f * g)(x) = \int_{\text{local}} f(x') g(x - x') dx'
+\end{equation*}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figs/cnn.png}
+    \caption*{CNN architecture with convolutional and pooling layers.}
+\end{figure}
+
+\textbf{Key properties:}
+\begin{itemize}
+    \item Translation invariant
+    \item Local receptive field
+    \item Successful for images
+    \item \alert{But limited to local patterns}
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Kernel Operators: The General Form}
+
+A \textbf{kernel operator} maps functions to functions:
+
+\begin{equation*}
+\mathcal{K}(v)(x) = \int_{\Omega} \kappa(x, x') v(x') dx'
+\end{equation*}
+
+where $\kappa(x, x')$ is a \textbf{learned kernel}.
+
+\vspace{1cm}
+
+\textbf{Types of kernels:}
+\begin{enumerate}
+    \item \textbf{Standard convolution:} $\kappa(x, x') = k(x - x')$ (local, translation-invariant)
+    \item \textbf{Graph operators:} $\kappa$ defined on graph edges
+    \item \textbf{Fourier operators:} $\kappa$ learned in spectral space (global, efficient)
+\end{enumerate}
+
+\vspace{0.5cm}
+
+\begin{alertblock}{Why Fourier?}
+Convolution in physical space = multiplication in Fourier space!
+\end{alertblock}
+
+\end{frame}
+
+%------------------------------------------------
+\section{Fourier Transform: The Mathematical Foundation}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{The Fourier Transform}
+
+\textbf{Mathematical Definition:}
+
+The Fourier Transform decomposes a function into sinusoidal components:
+
+\begin{equation*}
+\hat{u}(k) = \mathcal{F}(u)(k) = \int_{-\infty}^{\infty} u(x) e^{-ikx} dx
+\end{equation*}
+
+\textbf{Inverse Fourier Transform:}
+
+\begin{equation*}
+u(x) = \mathcal{F}^{-1}(\hat{u})(x) = \frac{1}{2\pi} \int_{-\infty}^{\infty} \hat{u}(k) e^{ikx} dk
+\end{equation*}
+
+\vspace{0.5cm}
+
+\textbf{Key insight:} Any function can be written as:
+\begin{equation*}
+u(x) = \sum_{k} \hat{u}_k e^{ikx}
+\end{equation*}
+
+where $\hat{u}_k$ are \textbf{Fourier coefficients} (complex weights) and $e^{ikx}$ are basis functions.
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Essential Properties of Fourier Transform}
+
+\begin{block}{1. Derivatives become multiplication}
+\begin{equation*}
+\mathcal{F}\left(\frac{\partial u}{\partial x}\right) = ik\hat{u}(k)
+\end{equation*}
+\end{block}
+
+\begin{block}{2. Convolution becomes multiplication (Convolution Theorem)}
+\begin{equation*}
+\mathcal{F}(u * v) = \mathcal{F}(u) \cdot \mathcal{F}(v)
+\end{equation*}
+\end{block}
+
+\begin{block}{3. Parseval's theorem (Energy conservation)}
+\begin{equation*}
+\int |u(x)|^2 dx = \int |\hat{u}(k)|^2 dk
+\end{equation*}
+\end{block}
+
+\vspace{0.5cm}
+
+\textbf{Computational advantage:} FFT is $O(N \log N)$, far cheaper than dense convolution $O(N^2)$.
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Fourier Decomposition: Visualization}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{figs/fourier_transform_demo.png}
+    \caption*{Fourier decomposition: A function (left) is represented as a sum of weighted sinusoids (middle), with most energy concentrated in low frequencies (right).}
+\end{figure}
+
+\textbf{Key observation:} Most energy concentrated in low frequencies.
+
+\textbf{FNO exploits this:} Learn weights only for low-frequency modes ($k_{\max} \approx 12-16$), discard high frequencies.
+
+\end{frame}
+
+%------------------------------------------------
+\section{Fourier Neural Operator Architecture}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{The Core Idea}
+
+Instead of learning in physical space, \textbf{learn in Fourier space}:
+
+\begin{equation*}
+v_{t+1}(x) = \sigma\left(W v_t(x) + \mathcal{K}(v_t)(x)\right)
+\end{equation*}
+
+where the kernel operator $\mathcal{K}$ is parameterized in Fourier space:
+
+\begin{equation*}
+\mathcal{K}(v)(x) = \mathcal{F}^{-1}\left(R_\phi \cdot \mathcal{F}(v)\right)(x)
+\end{equation*}
+
+Here, $R_\phi$ are \textbf{learnable weights} in Fourier space.
+
+\vspace{1cm}
+
+\begin{block}{The FNO workflow}
+\begin{equation*}
+\text{Input } u(x) \xrightarrow{\text{FFT}} \text{Fourier Space} \xrightarrow{\text{Learn } R_\phi} \text{Fourier Space} \xrightarrow{\text{IFFT}} \text{ Output}
+\end{equation*}
+\end{block}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Complete FNO Architecture}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figs/fourier_architecture.png}
+    \caption*{Fourier Neural Operator architecture.}
+\end{figure}
+
+\textbf{Architecture consists of:}
+\begin{itemize}
+    \item \textbf{Lifting:} $P(u) \rightarrow v_0$ (embed input to high-dimensional space)
+    \item \textbf{Fourier Layers:} $v_{t+1} = \sigma(W v_t + \mathcal{K}(v_t))$ (4 layers)
+    \item \textbf{Projection:} $Q(v_4) \rightarrow \text{output}$ (map back to output space)
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Spectral Convolution Layer}
+
+Each Fourier layer performs three operations:
+
+\begin{enumerate}
+    \item \textbf{FFT:} $\hat{v} = \mathcal{F}(v)$
+
+    \item \textbf{Linear transform (truncated):}
+    \begin{equation*}
+    \hat{v}_{\text{out}}[k] = R_\phi[k] \cdot \hat{v}[k] \quad \text{for } k \leq k_{\max}
+    \end{equation*}
+
+    \item \textbf{IFFT:} $v_{\text{out}} = \mathcal{F}^{-1}(\hat{v}_{\text{out}})$
+\end{enumerate}
+
+\vspace{1cm}
+
+\begin{alertblock}{Key design choice}
+Only keep low-frequency modes ($k_{\max} \approx 12-16$), discard high frequencies.
+
+\textbf{Why?} Most signal energy in low frequencies + acts as implicit regularization.
+\end{alertblock}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Spectral Convolution: Mathematical Details}
+
+For 1D problems:
+
+\begin{equation*}
+\text{SpectralConv1d}(v) = \mathcal{F}^{-1}\left(R \cdot \mathcal{F}(v)[:k_{\max}]\right)
+\end{equation*}
+
+For 2D problems:
+
+\begin{equation*}
+\text{SpectralConv2d}(v) = \mathcal{F}^{-1}\left(R_1 \cdot \mathcal{F}(v)[:k_1, :k_2] + R_2 \cdot \mathcal{F}(v)[-k_1:, :k_2]\right)
+\end{equation*}
+
+\vspace{0.5cm}
+
+\textbf{Learnable parameters:} $R \in \mathbb{C}^{c_{in} \times c_{out} \times k_{\max}}$
+
+\vspace{0.5cm}
+
+\textbf{Skip connections:} Standard 1x1 convolution in parallel
+\begin{equation*}
+v_{\text{out}} = \sigma(\text{SpectralConv}(v) + W v)
+\end{equation*}
+
+\end{frame}
+
+%------------------------------------------------
+\section{Example 1: 1D Burgers Equation}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{The 1D Viscous Burgers Equation}
+
+\textbf{Problem Formulation:}
+
+The 1D viscous Burgers equation models shock wave propagation:
+
+\begin{equation*}
+\frac{\partial u}{\partial t} + u\frac{\partial u}{\partial x} = \nu \frac{\partial^2 u}{\partial x^2}, \quad x \in [0, 2\pi], t \in [0, T]
+\end{equation*}
+
+with periodic boundary conditions and initial condition $u(x, 0) = u_0(x)$.
+
+\vspace{1cm}
+
+\textbf{Operator learning task:} Learn the mapping
+\begin{equation*}
+\mathcal{G}: u_0(x) \mapsto u(x, T)
+\end{equation*}
+from initial condition to solution at time $T = 1$.
+
+\vspace{0.5cm}
+
+\textbf{Dataset:} 1024 training samples from varied initial conditions, solved using spectral methods.
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Burgers Equation: Physical Interpretation}
+
+\begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+        \textbf{The physics:}
+        \begin{itemize}
+            \item \textbf{Nonlinear advection:} $u\frac{\partial u}{\partial x}$
+            \item \textbf{Viscous diffusion:} $\nu \frac{\partial^2 u}{\partial x^2}$
+            \item Competition creates shock waves
+            \item Periodic boundary conditions
+        \end{itemize}
+
+        \vspace{0.5cm}
+
+        \textbf{Why this problem:}
+        \begin{itemize}
+            \item Prototype for nonlinear PDEs
+            \item Captures shock formation
+            \item Tests operator learning on complex dynamics
+        \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+        \begin{figure}[ht]
+            \centering
+            \includegraphics[width=\linewidth]{figs/burgers_examples.png}
+            \caption*{Sample initial conditions (blue) and evolved solutions (red) showing shock formation.}
+        \end{figure}
+    \end{column}
+\end{columns}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{1D FNO Architecture and Training}
+
+\textbf{Model Configuration:}
+\begin{itemize}
+    \item \textbf{Input:} $(u_0(x), x)$ at $m = 2048$ points (subsampled to 512)
+    \item \textbf{Fourier modes:} $k_{\max} = 16$
+    \item \textbf{Hidden width:} $w = 64$
+    \item \textbf{Layers:} 4 Fourier layers with skip connections
+    \item \textbf{Activation:} GELU
+    \item \textbf{Parameters:} $\sim$287K
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Training Configuration:}
+\begin{itemize}
+    \item \textbf{Loss:} Relative $L^2$ loss: $\frac{\|u_{pred} - u_{true}\|_2}{\|u_{true}\|_2}$
+    \item \textbf{Optimizer:} Adam with OneCycleLR scheduler
+    \item \textbf{Training samples:} 1000
+    \item \textbf{Test samples:} 100
+    \item \textbf{Epochs:} 200
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Burgers Equation: Training Results}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{figs/burgers_training.png}
+    \caption*{Training history showing convergence of relative $L^2$ loss.}
+\end{figure}
+
+\textbf{Observations:}
+\begin{itemize}
+    \item Rapid convergence in first 50 epochs
+    \item Final test error: $\sim$0.01-0.02 relative $L^2$
+    \item No overfitting - train and test losses track together
+    \item Model learns complex shock dynamics from data
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Burgers Equation: Prediction Quality}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{figs/burgers_results.png}
+    \caption*{FNO predictions (red dashed) vs. true solutions (blue) for test cases.}
+\end{figure}
+
+\textbf{Key results:}
+\begin{itemize}
+    \item Accurate prediction of shock locations and amplitudes
+    \item Relative errors: 1-4\%
+    \item Works for initial conditions not seen during training
+    \item Captures steep gradients despite spectral representation
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Zero-Shot Super-Resolution}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figs/burgers_superres.png}
+    \caption*{Training at 512 resolution, evaluating at 2048 resolution (4x upsampling).}
+\end{figure}
+
+\begin{alertblock}{Mesh Independence}
+\begin{itemize}
+    \item \textbf{Train:} 512 grid points
+    \item \textbf{Test:} 2048 grid points (4x refinement)
+    \item \textbf{Result:} Maintains accuracy at higher resolution!
+\end{itemize}
+\end{alertblock}
+
+\textbf{Why this works:} FNO learns in Fourier space (continuous representation), not tied to specific discretization.
+
+\end{frame}
+
+%------------------------------------------------
+\section{Example 2: 2D Darcy Flow}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{The 2D Darcy Flow Equation}
+
+\textbf{Problem Formulation:}
+
+The 2D Darcy flow equation models steady-state flow in porous media:
+
+\begin{equation*}
+-\nabla \cdot (a(x, y) \nabla u(x, y)) = f(x, y), \quad (x, y) \in [0, 1]^2
+\end{equation*}
+
+with zero boundary conditions: $u|_{\partial\Omega} = 0$.
+
+\vspace{1cm}
+
+\textbf{Operator learning task:} Learn the mapping
+\begin{equation*}
+\mathcal{G}: a(x, y) \mapsto u(x, y)
+\end{equation*}
+from permeability coefficient $a$ to pressure/hydraulic head $u$.
+
+\vspace{0.5cm}
+
+\textbf{Physical interpretation:}
+\begin{itemize}
+    \item $a(x, y)$: permeability field (how easily fluid flows)
+    \item $u(x, y)$: pressure field
+    \item $f(x, y)$: source term (set to 1)
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Darcy Flow: Dataset and Physics}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figs/darcy_examples.png}
+    \caption*{Left: Permeability fields $a(x,y)$ (input). Right: Pressure fields $u(x,y)$ (output).}
+\end{figure}
+
+\textbf{Dataset characteristics:}
+\begin{itemize}
+    \item 1024 samples with random piecewise constant permeability
+    \item Resolution: $241 \times 241$ (subsampled to $81 \times 81$)
+    \item 1000 training samples, 100 test samples
+\end{itemize}
+
+\textbf{Physical insight:} Low permeability (dark) → high pressure gradients (red/yellow)
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{2D FNO Architecture}
+
+\textbf{Model Configuration:}
+\begin{itemize}
+    \item \textbf{Input:} $(a(x,y), x, y)$ at $81 \times 81$ grid
+    \item \textbf{Fourier modes:} $k_{\max} = 12$ (both x and y directions)
+    \item \textbf{Hidden width:} $w = 32$
+    \item \textbf{Layers:} 4 Fourier layers
+    \item \textbf{Parameters:} $\sim$130K
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Spectral Convolution 2D:}
+\begin{equation*}
+\text{FFT2} \rightarrow \text{Multiply modes } [:12, :12] \text{ and } [-12:, :12] \rightarrow \text{IFFT2}
+\end{equation*}
+
+\vspace{0.5cm}
+
+\textbf{Why two weight matrices?}
+Due to symmetry of real FFT (rfft2), we need weights for both lower and upper frequencies.
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Darcy Flow: Training Configuration}
+
+\textbf{Training Setup:}
+\begin{itemize}
+    \item \textbf{Loss:} Relative $L^2$ loss in 2D
+    \item \textbf{Optimizer:} Adam with step decay (StepLR)
+    \item \textbf{Learning rate:} 0.001 with decay every 50 epochs
+    \item \textbf{Batch size:} 20
+    \item \textbf{Epochs:} 200 (500 in original paper)
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Data Normalization:}
+\begin{itemize}
+    \item Input permeability: Unit Gaussian normalization
+    \item Output pressure: Unit Gaussian normalization
+    \item Decode predictions before computing loss
+\end{itemize}
+
+\vspace{0.5cm}
+
+\begin{alertblock}{Important}
+Normalize data for stable training, but always compute loss on physical quantities!
+\end{alertblock}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Darcy Flow: Results and Analysis}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{figs/darcy_results.png}
+    \caption*{Left: True pressure. Middle: FNO prediction. Right: Error map.}
+\end{figure}
+
+\textbf{Quantitative Results:}
+\begin{itemize}
+    \item Relative $L^2$ error: 2.9-3.2\%
+    \item Captures circular pressure distributions
+    \item Handles heterogeneous permeability fields
+    \item Structured errors (not random noise) suggest room for improvement
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Understanding the "Two Bubbles"}
+
+\begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+        \textbf{Why circular patterns?}
+        \begin{itemize}
+            \item Elliptic PDE creates smooth distributions
+            \item Source term $f=1$ uniformly
+            \item Zero boundary conditions
+            \item Low permeability → high pressure
+        \end{itemize}
+
+        \vspace{0.5cm}
+
+        \textbf{Error patterns show:}
+        \begin{itemize}
+            \item Higher errors near boundaries
+            \item Errors in steep gradient regions
+            \item Suggests need for more training
+        \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+        \begin{figure}[ht]
+            \centering
+            \includegraphics[width=\linewidth]{figs/darcy_physics.png}
+            \caption*{Physical interpretation: Permeability variations create pressure "bubbles".}
+        \end{figure}
+    \end{column}
+\end{columns}
+
+\vspace{0.5cm}
+
+\textbf{Key takeaway:} The patterns are \alert{physically correct} - FNO learned the right physics!
+
+\end{frame}
+
+%------------------------------------------------
+\section{Key Insights and Comparisons}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{What Makes FNO Special?}
+
+\begin{block}{1. Mesh Independence}
+\begin{itemize}
+    \item Train on one resolution, evaluate on any resolution
+    \item Works because we learn in Fourier space (continuous representation)
+    \item Discretization is only for FFT computation
+\end{itemize}
+\end{block}
+
+\begin{block}{2. Computational Efficiency}
+\begin{itemize}
+    \item FFT: $O(N \log N)$ vs dense convolution $O(N^2)$
+    \item Once trained: milliseconds per evaluation
+    \item Traditional solver: seconds to minutes
+\end{itemize}
+\end{block}
+
+\begin{block}{3. Global Receptive Field}
+\begin{itemize}
+    \item Fourier modes capture global information
+    \item No need to stack many layers for long-range dependencies
+    \item Contrast with CNNs: local receptive fields
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Physics-Informed Design}
+
+\textbf{Why Fourier space is natural for physics:}
+
+\begin{itemize}
+    \item \textbf{50+ years of spectral methods:} Physicists have used Fourier for PDEs since the 1960s
+    \item \textbf{Derivatives are algebraic:} $\partial_x \rightarrow ik$
+    \item \textbf{Convolution theorem:} Simplifies nonlinear terms
+    \item \textbf{Natural for periodic BCs:} Exact representation
+\end{itemize}
+
+\vspace{1cm}
+
+\begin{alertblock}{Key insight}
+FNO doesn't invent a new representation - it uses the one physicists have known works well!
+\end{alertblock}
+
+\vspace{0.5cm}
+
+\textbf{Low-frequency truncation benefits:}
+\begin{itemize}
+    \item \textbf{Efficiency:} Most energy in low frequencies
+    \item \textbf{Regularization:} Implicit smoothing
+    \item \textbf{Generalization:} Avoids overfitting to high-frequency noise
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Limitations and Considerations}
+
+\begin{alertblock}{1. Periodic Boundary Conditions}
+\begin{itemize}
+    \item Standard FFT assumes periodicity
+    \item Extensions needed for general geometries (Geo-FNO)
+    \item Works perfectly for: Navier-Stokes on periodic domains
+    \item Challenges for: Complex geometries, irregular domains
+\end{itemize}
+\end{alertblock}
+
+\begin{alertblock}{2. Data Requirements}
+\begin{itemize}
+    \item Need many solved PDE instances for training
+    \item Expensive data generation phase
+    \item Can be mitigated with physics-informed training
+\end{itemize}
+\end{alertblock}
+
+\begin{alertblock}{3. Black Box Nature}
+\begin{itemize}
+    \item No explicit PDE enforcement during training (standard FNO)
+    \item May violate physical constraints
+    \item Solution: Physics-Informed FNO
+\end{itemize}
+\end{alertblock}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{FNO vs DeepONet: Comparison}
+
+\begin{table}[]
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Aspect} & \textbf{DeepONet} & \textbf{FNO} \\ \midrule
+\textbf{Architecture} & Branch-Trunk & Spectral Convolution \\
+\textbf{Space} & Physical & Fourier \\
+\textbf{Queries} & Arbitrary points & Grid points (FFT) \\
+\textbf{Best for} & Irregular domains & Periodic domains \\
+\textbf{Parameters} & More & Fewer \\
+\textbf{Speed} & Fast & Faster (FFT) \\
+\textbf{Global info} & Via trunk network & Natural in Fourier \\
+\textbf{Mesh free?} & Yes & No (needs FFT grid) \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\vspace{0.5cm}
+
+\textbf{Key difference:}
+\begin{itemize}
+    \item \textbf{DeepONet:} Learns basis decomposition in physical space
+    \item \textbf{FNO:} Learns multiplication in Fourier space
+\end{itemize}
+
+\vspace{0.5cm}
+
+Both are powerful! Choice depends on:
+\begin{itemize}
+    \item Boundary conditions (periodic → FNO, irregular → DeepONet)
+    \item Query pattern (grid → FNO, arbitrary points → DeepONet)
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\section{Extensions and Future Directions}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Extensions to FNO}
+
+\begin{block}{Geo-FNO: Arbitrary Geometries}
+\begin{itemize}
+    \item Use coordinate transforms to handle non-periodic domains
+    \item Applies Fourier layers in transformed space
+    \item Enables FNO for complex geometries
+\end{itemize}
+\end{block}
+
+\begin{block}{Physics-Informed FNO}
+\begin{itemize}
+    \item Add PDE residual to loss function
+    \item Ensures physical consistency
+    \item Reduces data requirements
+\end{itemize}
+\end{block}
+
+\begin{block}{Factorized FNO}
+\begin{itemize}
+    \item Low-rank approximations for 3D problems
+    \item Reduces memory and computation
+    \item Enables high-resolution 3D operator learning
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{U-FNO: Multi-Scale Architecture}
+
+\textbf{U-Net structure with Fourier layers:}
+
+\begin{itemize}
+    \item \textbf{Encoder:} Progressively downsample and increase channels
+    \item \textbf{Fourier layers:} At each resolution level
+    \item \textbf{Decoder:} Progressively upsample with skip connections
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Advantages:}
+\begin{itemize}
+    \item Captures multi-scale physics
+    \item Better for problems with localized features
+    \item Skip connections preserve fine details
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Applications:}
+\begin{itemize}
+    \item Turbulence (multi-scale eddies)
+    \item Weather prediction (global + local patterns)
+    \item Material design (micro + macro structures)
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Practical Applications}
+
+\textbf{Where FNO excels:}
+
+\begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+        \textbf{Fluid Dynamics:}
+        \begin{itemize}
+            \item Navier-Stokes on periodic domains
+            \item Turbulence modeling
+            \item Weather/climate prediction
+            \item Aerodynamics optimization
+        \end{itemize}
+
+        \vspace{0.5cm}
+
+        \textbf{Scientific Computing:}
+        \begin{itemize}
+            \item Quantum mechanics (Schrödinger)
+            \item Wave propagation
+            \item Heat diffusion
+            \item Reaction-diffusion systems
+        \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+        \textbf{Engineering Design:}
+        \begin{itemize}
+            \item Structural optimization
+            \item Material design
+            \item Electromagnetics
+            \item Acoustic modeling
+        \end{itemize}
+
+        \vspace{0.5cm}
+
+        \textbf{Inverse Problems:}
+        \begin{itemize}
+            \item Parameter identification
+            \item Subsurface imaging
+            \item Medical imaging
+            \item Data assimilation
+        \end{itemize}
+    \end{column}
+\end{columns}
+
+\end{frame}
+
+%------------------------------------------------
+\section{Summary and Implementation}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{What We've Learned}
+
+\begin{block}{1. Conceptual Foundation}
+\begin{itemize}
+    \item CNNs are local kernel operators
+    \item FNO extends to global kernel operators in Fourier space
+    \item Physics naturally lives in spectral domain
+\end{itemize}
+\end{block}
+
+\begin{block}{2. Mathematical Framework}
+\begin{itemize}
+    \item Fourier Transform decomposes functions into frequency components
+    \item Convolution theorem: multiplication in Fourier space
+    \item Operator parametrization: $\mathcal{K}(v) = \mathcal{F}^{-1}(R_\phi \cdot \mathcal{F}(v))$
+\end{itemize}
+\end{block}
+
+\begin{block}{3. Architecture}
+\begin{itemize}
+    \item Spectral convolution layers: FFT → Learn → IFFT
+    \item Skip connections for expressivity
+    \item Mode truncation for efficiency and regularization
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Key Advantages of FNO}
+
+\begin{enumerate}
+    \item \textbf{Resolution independence:} Train on one grid, evaluate on any grid
+    \item \textbf{Computational efficiency:} $O(N \log N)$ via FFT
+    \item \textbf{Global receptive field:} Captures long-range dependencies naturally
+    \item \textbf{Physics-informed:} Leverages 50+ years of spectral methods
+    \item \textbf{Fast inference:} Once trained, millisecond evaluation
+    \item \textbf{Super-resolution:} Zero-shot upsampling capability
+\end{enumerate}
+
+\vspace{1cm}
+
+\begin{alertblock}{The paradigm shift}
+\textbf{Traditional:} Solve each PDE instance numerically \\
+\textbf{FNO:} Learn the solution operator once, instant evaluation for any input
+\end{alertblock}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{When to Use FNO}
+
+\begin{block}{Ideal scenarios:}
+\begin{itemize}
+    \item \textbf{Periodic or translation-invariant problems}
+    \item \textbf{Need for resolution independence}
+    \item \textbf{Real-time PDE solving}
+    \item \textbf{Large-scale parameter sweeps}
+    \item \textbf{Multi-query problems:} Same operator, many evaluations
+\end{itemize}
+\end{block}
+
+\begin{alertblock}{Consider alternatives when:}
+\begin{itemize}
+    \item \textbf{Complex, non-periodic geometries} (use Geo-FNO or DeepONet)
+    \item \textbf{Sparse, irregular data} (DeepONet better)
+    \item \textbf{Point-wise queries at arbitrary locations} (DeepONet)
+    \item \textbf{Very limited training data} (consider PI-FNO)
+\end{itemize}
+\end{alertblock}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Implementation Tips}
+
+\begin{block}{1. Architecture Choices}
+\begin{itemize}
+    \item \textbf{Fourier modes:} Start with 12-16, adjust based on problem
+    \item \textbf{Width:} 32-64 for most problems
+    \item \textbf{Layers:} 4 is standard, more for complex operators
+    \item \textbf{Activation:} GELU works well (smoother than ReLU)
+\end{itemize}
+\end{block}
+
+\begin{block}{2. Training Strategy}
+\begin{itemize}
+    \item \textbf{Loss:} Relative $L^2$ for scale-invariance
+    \item \textbf{Optimizer:} Adam with learning rate scheduling
+    \item \textbf{Normalization:} Unit Gaussian for inputs and outputs
+    \item \textbf{Epochs:} 200-500 depending on problem complexity
+\end{itemize}
+\end{block}
+
+\begin{block}{3. Validation}
+\begin{itemize}
+    \item Test on different resolutions (super-resolution check)
+    \item Verify physics consistency (if applicable)
+    \item Compare with traditional solver on held-out cases
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Resources and Further Reading}
+
+\textbf{Original Paper:}
+\begin{itemize}
+    \item Li et al., "Fourier Neural Operator for Parametric PDEs" (ICLR 2021)
+    \item \url{https://arxiv.org/abs/2010.08895}
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Extensions:}
+\begin{itemize}
+    \item Geo-FNO: \url{https://arxiv.org/abs/2207.05209}
+    \item Physics-Informed Neural Operators: \url{https://arxiv.org/abs/2111.03794}
+    \item Neural Operator Review: \url{https://arxiv.org/abs/2108.08481}
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Code and Data:}
+\begin{itemize}
+    \item Official implementation: \url{https://github.com/neuraloperator/neuraloperator}
+    \item Course notebooks: \url{https://github.com/kks32-courses/sciml}
+    \item Dataset: \url{https://huggingface.co/datasets/kks32/sciml-dataset}
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{The Bigger Picture}
+
+\begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+        \textbf{From Functions to Operators:}
+        \begin{itemize}
+            \item Neural Networks → Functions
+            \item DeepONet → Operators (branch-trunk)
+            \item FNO → Operators (spectral)
+            \item Next: Multi-scale, multi-physics
+        \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+        \textbf{Convergence of Fields:}
+        \begin{itemize}
+            \item Machine Learning
+            \item Numerical Analysis
+            \item Applied Mathematics
+            \item Scientific Computing
+        \end{itemize}
+    \end{column}
+\end{columns}
+
+\vspace{1cm}
+
+\begin{center}
+\textbf{FNO represents a beautiful synthesis:}
+
+Using physics-inspired architectures (Fourier) \\
++ \\
+Machine learning (neural networks) \\
+= \\
+Fast, accurate operator learning for science and engineering
+\end{center}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Questions?}
+
+\centering
+\Large Thank you!
+
+\vspace{2cm}
+
+\textbf{Contact:} \\
+Krishna Kumar \\
+\textit{krishnak@utexas.edu} \\
+University of Texas at Austin
+
+\vspace{1cm}
+
+\textbf{Interactive Demo:} \\
+\href{https://colab.research.google.com/github/kks32-courses/sciml/blob/main/docs/05-fno/fno.ipynb}{\beamergotobutton{FNO Notebook}}
+
+\vspace{0.5cm}
+
+\textbf{Dataset:} \\
+\href{https://huggingface.co/datasets/kks32/sciml-dataset}{\beamergotobutton{Hugging Face Dataset}}
+
+\end{frame}
+
+\end{document}
