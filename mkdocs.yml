@@ -140,6 +140,8 @@ nav:
     - B2B Operator: 03-function-encoder/03-b2b-operator.ipynb
   - GNS:
     - GNS: 04-gns/gnn.ipynb
+  - Fourier Neural Operator:
+    - FNO: 05-fno/fno.ipynb
   - Automatic Differentiation:
     - AD: 06-ad/06-ad.ipynb
 
