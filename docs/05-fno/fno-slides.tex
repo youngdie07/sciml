@@ -66,10 +66,6 @@ University of Texas at Austin \\
 \titlepage % title page as the first slide
 \end{frame}
 
-\begin{frame}
- \frametitle{Overview}
- \tableofcontents
-\end{frame}
 
 %----------------------------------------------------------------------------------------
 % slides
@@ -634,7 +630,7 @@ Normalize data for stable training, but always compute loss on physical quantiti
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=\textwidth]{figs/darcy_results.png}
+    \includegraphics[width=0.8\textwidth]{figs/darcy_results.png}
     \caption*{Left: True pressure. Middle: FNO prediction. Right: Error map.}
 \end{figure}
 
@@ -647,48 +643,6 @@ Normalize data for stable training, but always compute loss on physical quantiti
 \end{itemize}
 
 \end{frame}
-
-%------------------------------------------------
-\begin{frame}
-\frametitle{Understanding the "Two Bubbles"}
-
-\begin{columns}[T]
-    \begin{column}{0.5\textwidth}
-        \textbf{Why circular patterns?}
-        \begin{itemize}
-            \item Elliptic PDE creates smooth distributions
-            \item Source term $f=1$ uniformly
-            \item Zero boundary conditions
-            \item Low permeability → high pressure
-        \end{itemize}
-
-        \vspace{0.5cm}
-
-        \textbf{Error patterns show:}
-        \begin{itemize}
-            \item Higher errors near boundaries
-            \item Errors in steep gradient regions
-            \item Suggests need for more training
-        \end{itemize}
-    \end{column}
-    \begin{column}{0.5\textwidth}
-        \begin{figure}[ht]
-            \centering
-            \includegraphics[width=\linewidth]{figs/darcy_physics.png}
-            \caption*{Physical interpretation: Permeability variations create pressure "bubbles".}
-        \end{figure}
-    \end{column}
-\end{columns}
-
-\vspace{0.5cm}
-
-\textbf{Key takeaway:} The patterns are \alert{physically correct} - FNO learned the right physics!
-
-\end{frame}
-
-%------------------------------------------------
-\section{Key Insights and Comparisons}
-
 %------------------------------------------------
 \begin{frame}
 \frametitle{What Makes FNO Special?}
@@ -719,35 +673,6 @@ Normalize data for stable training, but always compute loss on physical quantiti
 
 \end{frame}
 
-%------------------------------------------------
-\begin{frame}
-\frametitle{Physics-Informed Design}
-
-\textbf{Why Fourier space is natural for physics:}
-
-\begin{itemize}
-    \item \textbf{50+ years of spectral methods:} Physicists have used Fourier for PDEs since the 1960s
-    \item \textbf{Derivatives are algebraic:} $\partial_x \rightarrow ik$
-    \item \textbf{Convolution theorem:} Simplifies nonlinear terms
-    \item \textbf{Natural for periodic BCs:} Exact representation
-\end{itemize}
-
-\vspace{1cm}
-
-\begin{alertblock}{Key insight}
-FNO doesn't invent a new representation - it uses the one physicists have known works well!
-\end{alertblock}
-
-\vspace{0.5cm}
-
-\textbf{Low-frequency truncation benefits:}
-\begin{itemize}
-    \item \textbf{Efficiency:} Most energy in low frequencies
-    \item \textbf{Regularization:} Implicit smoothing
-    \item \textbf{Generalization:} Avoids overfitting to high-frequency noise
-\end{itemize}
-
-\end{frame}
 
 %------------------------------------------------
 \begin{frame}
@@ -819,9 +744,6 @@ Both are powerful! Choice depends on:
 \end{frame}
 
 %------------------------------------------------
-\section{Extensions and Future Directions}
-
-%------------------------------------------------
 \begin{frame}
 \frametitle{Extensions to FNO}
 
@@ -853,167 +775,6 @@ Both are powerful! Choice depends on:
 
 %------------------------------------------------
 \begin{frame}
-\frametitle{U-FNO: Multi-Scale Architecture}
-
-\textbf{U-Net structure with Fourier layers:}
-
-\begin{itemize}
-    \item \textbf{Encoder:} Progressively downsample and increase channels
-    \item \textbf{Fourier layers:} At each resolution level
-    \item \textbf{Decoder:} Progressively upsample with skip connections
-\end{itemize}
-
-\vspace{0.5cm}
-
-\textbf{Advantages:}
-\begin{itemize}
-    \item Captures multi-scale physics
-    \item Better for problems with localized features
-    \item Skip connections preserve fine details
-\end{itemize}
-
-\vspace{0.5cm}
-
-\textbf{Applications:}
-\begin{itemize}
-    \item Turbulence (multi-scale eddies)
-    \item Weather prediction (global + local patterns)
-    \item Material design (micro + macro structures)
-\end{itemize}
-
-\end{frame}
-
-%------------------------------------------------
-\begin{frame}
-\frametitle{Practical Applications}
-
-\textbf{Where FNO excels:}
-
-\begin{columns}[T]
-    \begin{column}{0.5\textwidth}
-        \textbf{Fluid Dynamics:}
-        \begin{itemize}
-            \item Navier-Stokes on periodic domains
-            \item Turbulence modeling
-            \item Weather/climate prediction
-            \item Aerodynamics optimization
-        \end{itemize}
-
-        \vspace{0.5cm}
-
-        \textbf{Scientific Computing:}
-        \begin{itemize}
-            \item Quantum mechanics (Schrödinger)
-            \item Wave propagation
-            \item Heat diffusion
-            \item Reaction-diffusion systems
-        \end{itemize}
-    \end{column}
-    \begin{column}{0.5\textwidth}
-        \textbf{Engineering Design:}
-        \begin{itemize}
-            \item Structural optimization
-            \item Material design
-            \item Electromagnetics
-            \item Acoustic modeling
-        \end{itemize}
-
-        \vspace{0.5cm}
-
-        \textbf{Inverse Problems:}
-        \begin{itemize}
-            \item Parameter identification
-            \item Subsurface imaging
-            \item Medical imaging
-            \item Data assimilation
-        \end{itemize}
-    \end{column}
-\end{columns}
-
-\end{frame}
-
-%------------------------------------------------
-\section{Summary and Implementation}
-
-%------------------------------------------------
-\begin{frame}
-\frametitle{What We've Learned}
-
-\begin{block}{1. Conceptual Foundation}
-\begin{itemize}
-    \item CNNs are local kernel operators
-    \item FNO extends to global kernel operators in Fourier space
-    \item Physics naturally lives in spectral domain
-\end{itemize}
-\end{block}
-
-\begin{block}{2. Mathematical Framework}
-\begin{itemize}
-    \item Fourier Transform decomposes functions into frequency components
-    \item Convolution theorem: multiplication in Fourier space
-    \item Operator parametrization: $\mathcal{K}(v) = \mathcal{F}^{-1}(R_\phi \cdot \mathcal{F}(v))$
-\end{itemize}
-\end{block}
-
-\begin{block}{3. Architecture}
-\begin{itemize}
-    \item Spectral convolution layers: FFT → Learn → IFFT
-    \item Skip connections for expressivity
-    \item Mode truncation for efficiency and regularization
-\end{itemize}
-\end{block}
-
-\end{frame}
-
-%------------------------------------------------
-\begin{frame}
-\frametitle{Key Advantages of FNO}
-
-\begin{enumerate}
-    \item \textbf{Resolution independence:} Train on one grid, evaluate on any grid
-    \item \textbf{Computational efficiency:} $O(N \log N)$ via FFT
-    \item \textbf{Global receptive field:} Captures long-range dependencies naturally
-    \item \textbf{Physics-informed:} Leverages 50+ years of spectral methods
-    \item \textbf{Fast inference:} Once trained, millisecond evaluation
-    \item \textbf{Super-resolution:} Zero-shot upsampling capability
-\end{enumerate}
-
-\vspace{1cm}
-
-\begin{alertblock}{The paradigm shift}
-\textbf{Traditional:} Solve each PDE instance numerically \\
-\textbf{FNO:} Learn the solution operator once, instant evaluation for any input
-\end{alertblock}
-
-\end{frame}
-
-%------------------------------------------------
-\begin{frame}
-\frametitle{When to Use FNO}
-
-\begin{block}{Ideal scenarios:}
-\begin{itemize}
-    \item \textbf{Periodic or translation-invariant problems}
-    \item \textbf{Need for resolution independence}
-    \item \textbf{Real-time PDE solving}
-    \item \textbf{Large-scale parameter sweeps}
-    \item \textbf{Multi-query problems:} Same operator, many evaluations
-\end{itemize}
-\end{block}
-
-\begin{alertblock}{Consider alternatives when:}
-\begin{itemize}
-    \item \textbf{Complex, non-periodic geometries} (use Geo-FNO or DeepONet)
-    \item \textbf{Sparse, irregular data} (DeepONet better)
-    \item \textbf{Point-wise queries at arbitrary locations} (DeepONet)
-    \item \textbf{Very limited training data} (consider PI-FNO)
-\end{itemize}
-\end{alertblock}
-
-\end{frame}
-
-%------------------------------------------------
-\begin{frame}
 \frametitle{Implementation Tips}
 
 \begin{block}{1. Architecture Choices}
@@ -1037,8 +798,6 @@ Both are powerful! Choice depends on:
 \begin{block}{3. Validation}
 \begin{itemize}
     \item Test on different resolutions (super-resolution check)
-    \item Verify physics consistency (if applicable)
-    \item Compare with traditional solver on held-out cases
 \end{itemize}
 \end{block}
 
@@ -1074,44 +833,6 @@ Both are powerful! Choice depends on:
 
 \end{frame}
 
-%------------------------------------------------
-\begin{frame}
-\frametitle{The Bigger Picture}
-
-\begin{columns}[T]
-    \begin{column}{0.5\textwidth}
-        \textbf{From Functions to Operators:}
-        \begin{itemize}
-            \item Neural Networks → Functions
-            \item DeepONet → Operators (branch-trunk)
-            \item FNO → Operators (spectral)
-            \item Next: Multi-scale, multi-physics
-        \end{itemize}
-    \end{column}
-    \begin{column}{0.5\textwidth}
-        \textbf{Convergence of Fields:}
-        \begin{itemize}
-            \item Machine Learning
-            \item Numerical Analysis
-            \item Applied Mathematics
-            \item Scientific Computing
-        \end{itemize}
-    \end{column}
-\end{columns}
-
-\vspace{1cm}
-
-\begin{center}
-\textbf{FNO represents a beautiful synthesis:}
-
-Using physics-inspired architectures (Fourier) \\
-+ \\
-Machine learning (neural networks) \\
-= \\
-Fast, accurate operator learning for science and engineering
-\end{center}
-
-\end{frame}
 
 %------------------------------------------------
 \begin{frame}
