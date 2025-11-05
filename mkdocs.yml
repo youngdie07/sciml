@@ -144,6 +144,10 @@ nav:
     - FNO: 05-fno/fno.ipynb
   - Automatic Differentiation:
     - AD: 06-ad/06-ad.ipynb
+  - Neural ODE:
+    - Neural ODE: 07-neural-ode/neural-ode.ipynb
+    - Latent ODE: 07-neural-ode/latent-ode.ipynb
+    - Van Der Pol with Function Encoder: 07-neural-ode/vanderpol-function-encoder.ipynb
 
 copyright: |
   &copy; 2025 <a href="https://github.com/kks32-courses"  target="_blank" rel="noopener">Krishna Kumar</a>
