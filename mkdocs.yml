@@ -148,6 +148,11 @@ nav:
     - Neural ODE: 07-neural-ode/neural-ode.ipynb
     - Latent ODE: 07-neural-ode/latent-ode.ipynb
     - Van Der Pol with Function Encoder: 07-neural-ode/vanderpol-function-encoder.ipynb
+  - SINDy:
+    - SINDy Pendulum: 07-sindy/07b-sindy-pendulum.ipynb
+    - SINDy: 07-sindy/07-sindy.ipynb
+    - SINDy Experiment: 07-sindy/07a-sindy-experiment.ipynb
+    - SINDy Exercise: 07-sindy/07-sindy-exercise.ipynb
 
 copyright: |
   &copy; 2025 <a href="https://github.com/kks32-courses"  target="_blank" rel="noopener">Krishna Kumar</a>
