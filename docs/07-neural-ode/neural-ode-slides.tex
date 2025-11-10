@@ -394,10 +394,10 @@ x_{k+1} &= x_k + \frac{\Delta t}{6}(k_1 + 2k_2 + 2k_3 + k_4)
 
 \vspace{0.3cm}
 
-The adjoint state $a(t) = \frac{\partial L}{\partial h(t)}$ evolves as:
+The adjoint state $\lambda(t) = \frac{\partial L}{\partial h(t)}$ evolves as:
 
 \begin{equation}
-\frac{da(t)}{dt} = -a(t)^T \frac{\partial f(h(t), t, \theta)}{\partial h}
+\frac{d\lambda(t)}{dt} = -\lambda(t)^T \frac{\partial f(h(t), t, \theta)}{\partial h}
 \end{equation}
 
 
@@ -460,6 +460,300 @@ How do we compute gradients through the ODE solver without storing all intermedi
 \section{Detailed Adjoint Method}
 
 %------------------------------------------------
+\section{Adjoint Intuition}
+
+\begin{frame}
+\frametitle{Step 1: A Concrete Constrained Problem}
+
+\textbf{Goal:} Minimize $f(x, y) = x^2 + y^2$ subject to $x + y = 1$
+
+\begin{itemize}
+    \item Geometrically: find the closest point on the line $x + y = 1$ to the origin
+    \item Naive elimination: substitute $y = 1 - x$ and minimize $g(x) = x^2 + (1 - x)^2$
+    \item Differentiate $g'(x) = 4x - 2$, set to zero: $x = 1/2$ and $y = 1/2$
+    \item Works in tiny problems, but elimination explodes with many constraints/variables
+\end{itemize}
+
+\begin{block}{Observation}
+We need a reusable way to enforce constraints without eliminating variables one-by-one.
+\end{block}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Step 2: Lagrange Multipliers Refresher}
+
+Introduce a multiplier $\lambda$ and form
+\[
+\mathcal{L}(x, y, \lambda) = x^2 + y^2 + \lambda(x + y - 1).
+\]
+
+\vspace{0.3cm}
+
+Stationarity $\nabla \mathcal{L} = 0$ gives
+\[
+2x + \lambda = 0,\qquad 2y + \lambda = 0,\qquad x + y - 1 = 0.
+\]
+
+\begin{itemize}
+    \item $\partial \mathcal{L}/\partial x = 2x + \lambda = 0$ (gradient in $x$ direction)
+    \item $\partial \mathcal{L}/\partial y = 2y + \lambda = 0$ (gradient in $y$ direction)
+    \item $\partial \mathcal{L}/\partial \lambda = x + y - 1 = 0$ (enforces the constraint)
+\end{itemize}
+
+\begin{enumerate}
+    \item From $2x + \lambda = 0$ and $2y + \lambda = 0$ we get $x = -\lambda/2$ and $y = -\lambda/2$.
+    \item Substitute into the constraint: $x + y - 1 = -\lambda - 1 = 0$.
+    \item Therefore $\lambda = -1$ and $x = y = 1/2$.
+\end{enumerate}
+
+\begin{block}{Takeaway}
+$\lambda$ tells us how sensitive the optimum is to the constraint $x + y = 1$. Relaxing the constraint by $\varepsilon$ would change the optimum by roughly $-\lambda\,\varepsilon$.
+\end{block}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Step 3: Introduce Parameters and Sensitivities}
+
+Consider a general design parameter $s$:
+\[
+\min_{x} \; f(x, s) \quad \text{s.t.} \quad c(x, s) = 0.
+\]
+
+\begin{itemize}
+    \item We already know how to find $x^\star(s)$.
+    \item New question: how does the optimal value change as we change $s$?
+    \item We want the sensitivity $df/ds$ evaluated at the optimum.
+\end{itemize}
+
+\begin{block}{Motivating Example}
+Heated rod: $-u''(x) = s(x)$ with $u(0)=u(1)=0$, and cost
+$J = \int_0^1 (u - u_{\text{target}})^2 \, dx$.
+\end{block}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Heated Rod Example}
+
+\textbf{State (constraint):}
+\[
+-\frac{d^2 u}{dx^2} = s(x), \qquad u(0) = u(1) = 0.
+\]
+
+\textbf{Objective:}
+\[
+J(s) = \int_0^1 \big(u(x; s) - u_{\text{target}}(x)\big)^2 \, dx.
+\]
+
+\begin{itemize}
+    \item $s(x)$ controls heater strength along the rod.
+    \item We seek $dJ/ds(x)$: ``If I add heat here, how does the mismatch change?''
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Naive Sensitivity Strategies}
+
+\begin{block}{Finite Differences}
+Solve the PDE twice:
+$u(s)$ and $u(s+\varepsilon)$, then
+$dJ/ds \approx \frac{J(s+\varepsilon) - J(s)}{\varepsilon}$.
+\begin{itemize}
+    \item Requires one extra PDE solve per component of $s$.
+    \item Prohibitively expensive when $s$ has many components.
+\end{itemize}
+\end{block}
+
+\begin{block}{Forward Sensitivity}
+Differentiate the constraint:
+\[
+\frac{\partial c}{\partial u}\frac{du}{ds} + \frac{\partial c}{\partial s} = 0.
+\]
+Solve for $du/ds$, then plug into
+$dJ/ds = \frac{\partial J}{\partial u}\frac{du}{ds} + \frac{\partial J}{\partial s}$.
+\begin{itemize}
+    \item Still one large linear system \textbf{per component} of $s$.
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Adjoint Method in Three Lines}
+
+\textbf{First attempt (forward sensitivity):}
+\begin{align*}
+c(u, s) &= 0 \quad \Rightarrow \quad \frac{\partial c}{\partial u}\frac{du}{ds} + \frac{\partial c}{\partial s} = 0,\\
+\frac{du}{ds} &= -\left(\frac{\partial c}{\partial u}\right)^{-1}\frac{\partial c}{\partial s}, \\
+\frac{dJ}{ds} &= \frac{\partial J}{\partial u}\frac{du}{ds} + \frac{\partial J}{\partial s}.
+\end{align*}
+\textbf{Issue:} Need to solve this linear system \emph{once per component} of $s$.
+
+\vspace{0.25cm}
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Adjoint Method in Three Lines}
+
+
+\textbf{Adjoint trick (one solve total):}
+\begin{enumerate}
+    \item Form $\mathcal{L}(u, s, \lambda) = J(u, s) + \lambda^\top c(u, s)$.
+    \item Set $\partial \mathcal{L}/\partial u = 0$:
+    \[
+    \frac{\partial J}{\partial u} + \lambda^\top \frac{\partial c}{\partial u} = 0
+    \quad \Rightarrow \quad
+    \left(\frac{\partial c}{\partial u}\right)^\top \lambda = -\frac{\partial J}{\partial u}.
+    \]
+    Solve this once for $\lambda$; it depends on $(u, s)$ but not on the dimension of $s$.
+    \item Stationarity in $s$ gives the gradient:
+    \[
+    \frac{dJ}{ds} = \frac{\partial J}{\partial s} + \lambda^\top \frac{\partial c}{\partial s}.
+    \]
+\end{enumerate}
+
+\begin{block}{Result}
+Solve \emph{one} adjoint system for $\lambda$ and reuse it to obtain all components of $dJ/ds$.
+\end{block}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Adjoint for the Heated Rod}
+
+\begin{itemize}
+    \item Constraint: $-\frac{d^2 u}{dx^2} = s(x)$.
+    \item Objective: $J = \int (u - u_{\text{target}})^2 dx$.
+\end{itemize}
+
+\textbf{Adjoint PDE} (stationarity w.r.t. $u$):
+\[
+-\frac{d^2 \lambda}{dx^2} = -2\big(u - u_{\text{target}}\big),
+\qquad \lambda(0) = \lambda(1) = 0.
+\]
+
+\textbf{Gradient (stationarity in $s$)}:
+\[
+\frac{dJ}{ds}(x) = -\lambda(x)
+\]
+(we can flip the sign convention if we prefer to work with $+\lambda$).
+
+
+\begin{block}{Interpretation}
+$\lambda(x)$ tells us how helpful a unit of heat at $x$ would be in reducing the cost.
+\end{block}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Deriving the Heated-Rod Adjoint (1/2)}
+
+\textbf{Constraint (state equation):}
+\[
+c(u, s) = -\frac{d^2 u}{dx^2} - s(x) = 0.
+\]
+
+\textbf{Objective:}
+\[
+J(u) = \int_0^1 (u - u_{\text{target}})^2 \, dx.
+\]
+
+Form the Lagrangian
+\[
+\mathcal{L}(u, s, \lambda) = J(u) + \int_0^1 \lambda(x)\,c(u, s)\,dx.
+\]
+
+Stationarity with respect to $u$:
+\[
+\frac{\partial \mathcal{L}}{\partial u} = 2(u - u_{\text{target}}) - \frac{d^2 \lambda}{dx^2} = 0.
+\]
+
+\textbf{Resulting adjoint PDE:}
+\[
+-\frac{d^2 \lambda}{dx^2} = -2(u - u_{\text{target}}), \quad \lambda(0)=\lambda(1)=0.
+\]
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Deriving the Heated-Rod Adjoint (2/2)}
+
+Stationarity with respect to $s$ gives
+\[
+\frac{dJ}{ds}(x) = \frac{\partial J}{\partial s} + \lambda(x)\frac{\partial c}{\partial s} = -\lambda(x).
+\]
+Throughout these slides we adopt the sign convention where the reported gradient is $-\lambda(x)$ so that increasing $s$ follows the negative adjoint direction.
+
+\begin{block}{Summary}
+\begin{enumerate}
+    \item Solve the forward problem $-u'' = s$.
+    \item Solve the adjoint problem $-\lambda'' = -2(u - u_{\text{target}})$.
+    \item Use $\frac{dJ}{ds}(x) = \lambda(x)$ to update heater strengths.
+\end{enumerate}
+\end{block}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{From Adjoint to Backpropagation}
+
+\begin{itemize}
+    \item Classical backpropagation = adjoint method for discrete layers.
+    \item \textbf{Forward pass:} compute activations (state trajectory).
+    \item \textbf{Backward pass:} propagate adjoint sensitivities (gradients) layer by layer.
+\end{itemize}
+
+
+\begin{block}{Key Analogy}
+Weights $w_i$ play the role of $s_i$.
+Layer activations are the state $u$.
+The backward pass solves the discrete adjoint system.
+\end{block}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+\frametitle{Neural ODE Adjoint in Practice}
+
+\textbf{Forward dynamics:}
+\[
+\frac{dz}{dt} = f_\theta(z, t), \qquad z(t_0) = z_0.
+\]
+
+\textbf{Adjoint dynamics:}
+\[
+\frac{d\lambda}{dt} = -\lambda^\top \frac{\partial f_\theta}{\partial z}, \qquad
+\lambda(t_1) = \frac{\partial \mathcal{L}}{\partial z(t_1)}.
+\]
+
+\textbf{Parameter gradient:}
+\[
+\frac{\partial \mathcal{L}}{\partial \theta} = -\int_{t_0}^{t_1} \lambda^\top
+\frac{\partial f_\theta}{\partial \theta}\, dt.
+\]
+
+
+\begin{block}{Practical Pipeline}
+One forward ODE solve for $z(t)$ + one backward adjoint ODE solve for $\lambda(t)$ = gradients for \emph{all} parameters with $\mathcal{O}(1)$ memory.
+\end{block}
+
+\end{frame}
+
+%------------------------------------------------
 \begin{frame}[fragile]
 \frametitle{Algorithm 1: Adjoint Sensitivity Method}
 
@@ -475,17 +769,17 @@ How do we compute gradients through the ODE solver without storing all intermedi
 
 \vspace{0.3cm}
 
-\textbf{Backward Pass:} Define augmented state $s(t) = [a(t), \frac{\partial L}{\partial \theta}(t), \frac{\partial L}{\partial t_0}(t)]$
+\textbf{Backward Pass:} Define augmented state $s(t) = [\lambda(t), \frac{\partial L}{\partial \theta}(t), \frac{\partial L}{\partial t_0}(t)]$
 
-Initialize: $a(t_1) = \frac{\partial L}{\partial h(t_1)}$, others zero
+Initialize: $\lambda(t_1) = \frac{\partial L}{\partial h(t_1)}$, others zero
 
 \vspace{0.2cm}
 
 Solve augmented ODE backward from $t_1$ to $t_0$:
 \begin{align*}
-\frac{da(t)}{dt} &= -a(t)^T \frac{\partial f(h(t), t, \theta)}{\partial h} \\
-\frac{d}{dt}\frac{\partial L}{\partial \theta} &= -a(t)^T \frac{\partial f(h(t), t, \theta)}{\partial \theta} \\
-\frac{d}{dt}\frac{\partial L}{\partial t_0} &= -a(t)^T f(h(t), t, \theta)
+\frac{d\lambda(t)}{dt} &= -\lambda(t)^T \frac{\partial f(h(t), t, \theta)}{\partial h} \\
+\frac{d}{dt}\frac{\partial L}{\partial \theta} &= -\lambda(t)^T \frac{\partial f(h(t), t, \theta)}{\partial \theta} \\
+\frac{d}{dt}\frac{\partial L}{\partial t_0} &= -\lambda(t)^T f(h(t), t, \theta)
 \end{align*}
 
 
