@@ -146,6 +146,7 @@ nav:
     - AD: 06-ad/06-ad.ipynb
   - Neural ODE:
     - Neural ODE: 07-neural-ode/neural-ode.ipynb
+    - Adjoint: 07-neural-ode/constrained_optimization_adjoint_methods.md
     - Latent ODE: 07-neural-ode/latent-ode.ipynb
     - Van Der Pol with Function Encoder: 07-neural-ode/vanderpol-function-encoder.ipynb
   - SINDy:
