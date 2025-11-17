@@ -144,16 +144,16 @@ nav:
     - FNO: 05-fno/fno.ipynb
   - Automatic Differentiation:
     - AD: 06-ad/06-ad.ipynb
-  - Neural ODE:
-    - Neural ODE: 07-neural-ode/neural-ode.ipynb
-    - Adjoint: 07-neural-ode/constrained_optimization_adjoint_methods.md
-    - Latent ODE: 07-neural-ode/latent-ode.ipynb
-    - Van Der Pol with Function Encoder: 07-neural-ode/vanderpol-function-encoder.ipynb
   - SINDy:
     - SINDy Pendulum: 07-sindy/07b-sindy-pendulum.ipynb
     - SINDy: 07-sindy/07-sindy.ipynb
     - SINDy Experiment: 07-sindy/07a-sindy-experiment.ipynb
     - SINDy Exercise: 07-sindy/07-sindy-exercise.ipynb
+  - Neural ODE:
+    - Neural ODE: 08-neural-ode/neural-ode.ipynb
+    - Adjoint: 08-neural-ode/constrained_optimization_adjoint_methods.md
+    - Latent ODE: 08-neural-ode/latent-ode.ipynb
+    - Van Der Pol with Function Encoder: 08-neural-ode/vanderpol-function-encoder.ipynb
 
 copyright: |
   &copy; 2025 <a href="https://github.com/kks32-courses"  target="_blank" rel="noopener">Krishna Kumar</a>
