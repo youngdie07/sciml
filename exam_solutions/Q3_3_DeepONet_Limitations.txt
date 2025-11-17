@@ -1,0 +1,34 @@
+Q3.3 DeepONet Limitations
+=========================
+
+Question: List 3 main limitations of the DeepONet architecture
+
+Answer:
+
+1. Fixed Input/Output Function Discretization
+   Limitation:
+   - DeepONet assumes input functions are represented on a fixed sensor grid
+   - The branch network expects a fixed number of input values (e.g., f(x₁), f(x₂), ..., f(xₙ))
+   - Cannot handle variable-length inputs or irregularly sampled data without preprocessing
+   - If input function is sampled at different locations, network needs retraining
+   - Makes it difficult to handle multi-resolution or adaptive sampling
+   - Workarounds: use interpolation, padding, or attention mechanisms (more complex)
+
+2. Limited to Single Operator Learning
+   Limitation:
+   - Designed to learn ONE operator mapping (e.g., f → u)
+   - Cannot naturally handle multiple operators or multi-physics problems
+   - For example, cannot simultaneously learn both the solution operator AND parameter-to-solution map
+   - Struggles with composite operators or operator composition
+   - Extension to multiple operators requires architectural modifications (e.g., multiple branch networks)
+   - Less flexible than more recent architectures like Neural Operators or Transformers
+
+3. Scalability to High-Dimensional Problems
+   Limitation:
+   - Branch network input size grows with discretization of input function
+   - For high-dimensional input functions (2D, 3D fields), branch network becomes very large
+   - Example: 100×100 image → 10,000 input neurons to branch network
+   - Memory and computational cost scale poorly with input dimension
+   - Training becomes expensive and unstable for very high-dimensional operators
+   - Alternative architectures (FNO, Graph Neural Operators) handle this better
+   - Trunk network also needs to handle multi-dimensional query points, increasing complexity

@@ -1,0 +1,44 @@
+Q4 MLP Overfitting Mitigation
+==============================
+
+Question: You are training an MLP for a binary classification task and it is suffering from severe overfitting. Describe three distinct techniques you could use to mitigate this issue and briefly explain the mechanism behind each.
+
+Answer:
+
+1. Dropout Regularization
+   Mechanism:
+   - Randomly "drops" (sets to zero) a fraction of neurons during training (typically 20-50%)
+   - Each training iteration uses a different random subset of the network
+   - At test time, all neurons are active but outputs are scaled by the dropout rate
+   - Forces the network to learn redundant representations since it cannot rely on specific neurons
+   - Prevents co-adaptation of neurons, making the model more robust
+   - Mathematically equivalent to training an ensemble of exponentially many thinned networks
+   - Effectively acts as a form of model averaging
+
+2. L2 Regularization (Weight Decay)
+   Mechanism:
+   - Adds a penalty term to the loss function: L_total = L_data + λ * ||θ||²
+   - Penalizes large weights, encouraging the network to use smaller weight values
+   - Prevents the model from learning overly complex decision boundaries
+   - The regularization parameter λ controls the strength of the penalty
+   - Larger λ means stronger regularization (simpler model)
+   - Implements Occam's razor: prefer simpler explanations (smaller weights)
+   - Mathematically, this is equivalent to MAP estimation with a Gaussian prior on weights
+   - During gradient descent, weights decay exponentially toward zero unless supported by data
+
+3. Early Stopping
+   Mechanism:
+   - Monitor validation loss during training
+   - Stop training when validation loss starts to increase (or stops decreasing)
+   - Training loss continues to decrease, but validation loss increases = overfitting
+   - Saves the model weights at the point of best validation performance
+   - Prevents the model from learning noise in the training data
+   - Acts as implicit regularization without adding complexity to the loss function
+   - Typically use patience: allow N epochs of no improvement before stopping
+   - Computationally efficient: no hyperparameter tuning needed for regularization strength
+
+Alternative Techniques (bonus):
+- Data Augmentation: Artificially increase training data through transformations
+- Batch Normalization: Normalizes layer inputs, has regularizing effect
+- Reduce Model Complexity: Use fewer layers or fewer neurons per layer
+- Ensemble Methods: Train multiple models and average their predictions
